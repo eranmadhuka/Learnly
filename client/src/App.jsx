@@ -8,6 +8,7 @@ import "./App.css";
 import Register from "./pages/public/Register";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
+import LearningPlans from "./pages/private/LearningPlans";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<Profile />} />
             <Route path="/feed" element={<Feed />} />
+            <Route path="/learn" element={<LearningPlans />} />
           </Route>
         </Routes>
       </div>
