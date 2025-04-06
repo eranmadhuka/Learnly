@@ -1,0 +1,9 @@
+/* Set default font */
+body {
+    font-family: 'Jost', sans-serif;
+}
+
+/* Main header font */
+h1 {
+    font-family: 'Abril Fatface', serif;
+}
