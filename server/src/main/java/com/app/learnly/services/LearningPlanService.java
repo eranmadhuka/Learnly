@@ -16,45 +16,45 @@ public class LearningPlanService {
     private LearningPlanRepository learningPlanRepository;
 
     public LearningPlan createLearningPlan(LearningPlan learningPlan) {
+        if (learningPlan.getUserId() == null) {
+            throw new IllegalArgumentException("User ID must be provided to create a learning plan");
+        }
         learningPlan.setCreatedAt(new Date());
         learningPlan.setUpdatedAt(new Date());
         return learningPlanRepository.save(learningPlan);
-
     }
 
     public List<LearningPlan> getLearningPlansByUserId(String userId) {
         return learningPlanRepository.findByUserId(userId);
     }
 
+    public List<LearningPlan> getAllLearningPlans() {
+        return learningPlanRepository.findAll();
+    }
+
     public Optional<LearningPlan> getLearningPlanById(String id) {
         return learningPlanRepository.findById(id);
     }
 
-    public LearningPlan updateLearningPlan(String id, LearningPlan updatedPlan) {
+    public LearningPlan updateLearningPlan(String id, LearningPlan learningPlan) {
         Optional<LearningPlan> existingPlan = learningPlanRepository.findById(id);
-
         if (existingPlan.isPresent()) {
-            LearningPlan plan = existingPlan.get();
-
-            // Update fields but keep original ID and creation date
-            updatedPlan.setId(id);
-            updatedPlan.setCreatedAt(plan.getCreatedAt());
-            updatedPlan.setUpdatedAt(new Date());
-
+            LearningPlan updatedPlan = existingPlan.get();
+            updatedPlan.setTitle(learningPlan.getTitle());
+            updatedPlan.setDescription(learningPlan.getDescription());
+            updatedPlan.setTopics(learningPlan.getTopics());
+            updatedPlan.setPublic(learningPlan.isPublic());
+            updatedPlan.setUpdatedAt(learningPlan.getUpdatedAt());
             return learningPlanRepository.save(updatedPlan);
         }
-
         return null;
     }
 
     public boolean deleteLearningPlan(String id) {
-        Optional<LearningPlan> plan = learningPlanRepository.findById(id);
-
-        if (plan.isPresent()) {
+        if (learningPlanRepository.existsById(id)) {
             learningPlanRepository.deleteById(id);
             return true;
         }
-
         return false;
     }
 

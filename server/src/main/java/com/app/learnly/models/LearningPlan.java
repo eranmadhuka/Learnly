@@ -15,15 +15,17 @@ public class LearningPlan {
     private String title;
     private String description;
     private List<Topic> topics;
+    private String visibility; // "private" or "public"
     private Date createdAt;
     private Date updatedAt;
     private Date completionDate;
+    private List<String> followers; // Keeping this for tracking who imports it
+    private boolean isPublic = false; // Default to private
 
     public LearningPlan() {
     }
 
     // Getters and setters
-
     public String getId() {
         return id;
     }
@@ -64,6 +66,14 @@ public class LearningPlan {
         this.topics = topics;
     }
 
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility;
+    }
+
     public Date getCreatedAt() {
         return createdAt;
     }
@@ -88,6 +98,8 @@ public class LearningPlan {
         this.completionDate = completionDate;
     }
 
+    public boolean isPublic() { return isPublic; }
+    public void setPublic(boolean isPublic) { this.isPublic = isPublic; }
 
     // Nested Topic class
     public static class Topic {
@@ -97,7 +109,6 @@ public class LearningPlan {
         private boolean completed;
 
         // Getters and setters
-
         public String getTitle() {
             return title;
         }
@@ -163,4 +174,7 @@ public class LearningPlan {
             this.type = type;
         }
     }
+
+    public List<String> getFollowers() { return followers; }
+    public void setFollowers(List<String> followers) { this.followers = followers; }
 }

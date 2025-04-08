@@ -9,6 +9,7 @@ export const useLearning = () => useContext(LearningContext);
 export const LearningProvider = ({ children }) => {
   const { user } = useAuth();
   const [learningPlans, setLearningPlans] = useState([]);
+  const [publicPlans, setPublicPlans] = useState([]); // New state for public plans
   const [progressUpdates, setProgressUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,52 +18,67 @@ export const LearningProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (user && user._id) {
-        setLoading(true);
-        try {
-          const [plansResponse, updatesResponse] = await Promise.all([
-            axios.get(`${API_BASE_URL}/api/plans/${user._id}`, {
+      if (!user || !user.id) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const [userPlansResponse, publicPlansResponse, updatesResponse] =
+          await Promise.all([
+            axios.get(`${API_BASE_URL}/api/plans/user/${user.id}`, {
               withCredentials: true,
             }),
-            axios.get(`${API_BASE_URL}/api/progress/${user._id}`, {
+            axios.get(`${API_BASE_URL}/api/plans/public`, {
+              withCredentials: true,
+            }),
+            axios.get(`${API_BASE_URL}/api/progress/user/${user.id}`, {
               withCredentials: true,
             }),
           ]);
 
-          setLearningPlans(plansResponse.data);
-          setProgressUpdates(updatesResponse.data);
-        } catch (error) {
-          console.error("Error fetching learning data:", error);
-        } finally {
-          setLoading(false);
-        }
+        setLearningPlans(userPlansResponse.data);
+        setPublicPlans(
+          publicPlansResponse.data.filter((plan) => plan.userId !== user.id)
+        ); // Exclude user's own plans
+        setProgressUpdates(updatesResponse.data);
+      } catch (error) {
+        console.error("Error fetching learning data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, [user]);
+  }, [user, API_BASE_URL]);
 
   const addLearningPlan = async (planData) => {
+    if (!user || !user.id) throw new Error("User not authenticated");
+    if (!planData.title) throw new Error("Plan title is required");
+
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/plans`,
-        { ...planData, userId: user._id },
+        { ...planData, userId: user.id },
         { withCredentials: true }
       );
       const newPlan = response.data;
       setLearningPlans((prev) => [...prev, newPlan]);
       return newPlan;
     } catch (error) {
-      console.error("Error creating learning plan:", error);
-      throw error;
+      throw new Error("Failed to create learning plan");
     }
   };
 
   const editLearningPlan = async (planId, planData) => {
+    if (!user || !user.id) throw new Error("User not authenticated");
+    if (!planId || !planData.title) throw new Error("Invalid plan data");
+
     try {
       const response = await axios.put(
         `${API_BASE_URL}/api/plans/${planId}`,
-        { ...planData, userId: user._id },
+        { ...planData, userId: user.id },
         { withCredentials: true }
       );
       const updatedPlan = response.data;
@@ -71,12 +87,31 @@ export const LearningProvider = ({ children }) => {
       );
       return updatedPlan;
     } catch (error) {
-      console.error("Error updating learning plan:", error);
-      throw error;
+      throw new Error("Failed to update learning plan");
+    }
+  };
+
+  const importLearningPlan = async (planId) => {
+    if (!user || !user.id) throw new Error("User not authenticated");
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/plans/import/${planId}`,
+        null,
+        { params: { userId: user.id }, withCredentials: true }
+      );
+      const importedPlan = response.data;
+      setLearningPlans((prev) => [...prev, importedPlan]);
+      return importedPlan;
+    } catch (error) {
+      throw new Error("Failed to import learning plan");
     }
   };
 
   const removeLearningPlan = async (planId) => {
+    if (!user || !user.id) throw new Error("User not authenticated");
+    if (!planId) throw new Error("Plan ID is required");
+
     try {
       await axios.delete(`${API_BASE_URL}/api/plans/${planId}`, {
         withCredentials: true,
@@ -84,32 +119,37 @@ export const LearningProvider = ({ children }) => {
       setLearningPlans((prev) => prev.filter((plan) => plan.id !== planId));
       return true;
     } catch (error) {
-      console.error("Error deleting learning plan:", error);
-      throw error;
+      throw new Error("Failed to delete learning plan");
     }
   };
 
   const addProgressUpdate = async (updateData) => {
+    if (!user || !user.id) throw new Error("User not authenticated");
+    if (!updateData.learningPlanId || !updateData.title)
+      throw new Error("Invalid update data");
+
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/progress`,
-        { ...updateData, userId: user._id },
+        { ...updateData, userId: user.id },
         { withCredentials: true }
       );
       const newUpdate = response.data;
       setProgressUpdates((prev) => [...prev, newUpdate]);
       return newUpdate;
     } catch (error) {
-      console.error("Error creating progress update:", error);
-      throw error;
+      throw new Error("Failed to create progress update");
     }
   };
 
   const editProgressUpdate = async (updateId, updateData) => {
+    if (!user || !user.id) throw new Error("User not authenticated");
+    if (!updateId) throw new Error("Update ID is required");
+
     try {
       const response = await axios.put(
         `${API_BASE_URL}/api/progress/${updateId}`,
-        { ...updateData, userId: user._id },
+        { ...updateData, userId: user.id },
         { withCredentials: true }
       );
       const updatedUpdate = response.data;
@@ -118,12 +158,14 @@ export const LearningProvider = ({ children }) => {
       );
       return updatedUpdate;
     } catch (error) {
-      console.error("Error updating progress update:", error);
-      throw error;
+      throw new Error("Failed to update progress update");
     }
   };
 
   const removeProgressUpdate = async (updateId) => {
+    if (!user || !user.id) throw new Error("User not authenticated");
+    if (!updateId) throw new Error("Update ID is required");
+
     try {
       await axios.delete(`${API_BASE_URL}/api/progress/${updateId}`, {
         withCredentials: true,
@@ -133,17 +175,18 @@ export const LearningProvider = ({ children }) => {
       );
       return true;
     } catch (error) {
-      console.error("Error deleting progress update:", error);
-      throw error;
+      throw new Error("Failed to delete progress update");
     }
   };
 
   const value = {
     learningPlans,
+    publicPlans, // Expose public plans
     progressUpdates,
     loading,
     addLearningPlan,
     editLearningPlan,
+    importLearningPlan, // New method
     removeLearningPlan,
     addProgressUpdate,
     editProgressUpdate,

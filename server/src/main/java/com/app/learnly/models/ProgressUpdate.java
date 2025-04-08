@@ -24,8 +24,6 @@ public class ProgressUpdate {
     }
 
     // Getters and setters
-
-
     public String getId() {
         return id;
     }

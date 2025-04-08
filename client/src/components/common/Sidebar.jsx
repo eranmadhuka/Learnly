@@ -15,29 +15,29 @@ const Sidebar = () => {
     import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
   // Fetch user's posts
-  useEffect(() => {
-    const fetchPosts = async () => {
-      if (!user) return;
+  // useEffect(() => {
+  //   const fetchPosts = async () => {
+  //     if (!user) return;
 
-      try {
-        setIsLoadingPosts(true);
-        const response = await axios.get(
-          `${API_BASE_URL}/api/posts/user/${user.id}`,
-          {
-            withCredentials: true,
-          }
-        );
-        setPosts(response.data);
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-        setPosts([]);
-      } finally {
-        setIsLoadingPosts(false);
-      }
-    };
+  //     try {
+  //       setIsLoadingPosts(true);
+  //       const response = await axios.get(
+  //         `${API_BASE_URL}/api/posts/user/${user.id}`,
+  //         {
+  //           withCredentials: true,
+  //         }
+  //       );
+  //       setPosts(response.data);
+  //     } catch (error) {
+  //       console.error("Error fetching posts:", error);
+  //       setPosts([]);
+  //     } finally {
+  //       setIsLoadingPosts(false);
+  //     }
+  //   };
 
-    fetchPosts();
-  }, [user, API_BASE_URL]);
+  //   fetchPosts();
+  // }, [user, API_BASE_URL]);
 
   const isActive = (path) =>
     location.pathname === path
@@ -145,9 +145,9 @@ const Sidebar = () => {
           </li>
           <li>
             <Link
-              to="/learn"
+              to="/learning-plans"
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive(
-                "/learn"
+                "/learning-plans"
               )}`}
             >
               <Home size={20} />
