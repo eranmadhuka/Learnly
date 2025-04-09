@@ -15,7 +15,8 @@ const LearningPlans = () => {
     removeLearningPlan,
   } = useLearning();
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [activeTab, setActiveTab] = useState("myPlans"); // "myPlans" or "publicPlans"
+  const [selectedPublicPlan, setSelectedPublicPlan] = useState(null);
+  const [activeTab, setActiveTab] = useState("myPlans");
   const navigate = useNavigate();
 
   const calculateProgress = (plan) => {
@@ -139,7 +140,6 @@ const LearningPlans = () => {
           {/* Left Side: Plan List */}
           <div className="md:w-1/3 space-y-4">
             {activeTab === "myPlans" ? (
-              // My Plans List
               learningPlans.length === 0 ? (
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
                   <p className="text-gray-600 mb-4">
@@ -195,8 +195,7 @@ const LearningPlans = () => {
                   );
                 })
               )
-            ) : // Public Plans List
-            publicPlans.length === 0 ? (
+            ) : publicPlans.length === 0 ? (
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
                 <p className="text-gray-600">No public plans available yet.</p>
               </div>
@@ -204,6 +203,7 @@ const LearningPlans = () => {
               publicPlans.map((plan) => (
                 <div
                   key={plan.id}
+                  onClick={() => setSelectedPublicPlan(plan)}
                   className="p-4 rounded-lg bg-white border border-gray-200 shadow-sm"
                 >
                   <div className="flex justify-between items-start">
@@ -498,6 +498,70 @@ const LearningPlans = () => {
                   </div>
                 )}
               </div>
+            ) : selectedPublicPlan && activeTab === "publicPlans" ? (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {selectedPublicPlan.title}
+                  </h2>
+                  <div className="mt-4">
+                    <p className="text-gray-600">
+                      {selectedPublicPlan.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Topics
+                  </h3>
+                  <div className="space-y-4">
+                    {selectedPublicPlan.topics.map((topic, index) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-800">
+                          {topic.title}
+                        </h4>
+                        <div className="mt-2 pl-4">
+                          {topic.resources.length > 0 ? (
+                            <div className="space-y-2">
+                              {topic.resources.map((resource, resourceIdx) => (
+                                <div
+                                  key={resourceIdx}
+                                  className="flex items-center"
+                                >
+                                  <div
+                                    className={`w-8 h-8 flex items-center justify-center rounded-full text-white text-xs font-bold
+                                      ${
+                                        resource.type === "video"
+                                          ? "bg-red-500"
+                                          : resource.type === "article"
+                                          ? "bg-blue-500"
+                                          : "bg-green-500"
+                                      }`}
+                                  >
+                                    {resource.type.charAt(0).toUpperCase()}
+                                  </div>
+                                  <a
+                                    href={resource.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ml-2 text-sm hover:underline text-blue-600"
+                                  >
+                                    {resource.title}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">
+                              No resources for this topic
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col items-center justify-center h-64">
                 <img
@@ -507,7 +571,7 @@ const LearningPlans = () => {
                 />
                 <p className="text-gray-500 text-lg">
                   {activeTab === "myPlans"
-                    ? "Select a learning plan to view details"
+                    ? "Select a plan to view details"
                     : "Browse public learning plans to add to your collection"}
                 </p>
               </div>

@@ -106,7 +106,7 @@ public class LearningPlan {
         private String title;
         private String description;
         private List<Resource> resources;
-        private boolean completed;
+        private boolean completed = false;
 
         // Getters and setters
         public String getTitle() {
@@ -149,7 +149,6 @@ public class LearningPlan {
         private String type; // e.g., "video", "article", "book"
 
         // Getters and setters
-
         public String getTitle() {
             return title;
         }
