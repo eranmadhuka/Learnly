@@ -19,7 +19,7 @@ const Home = () => {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">
               Where <span className="text-amber-500">Skills are Shared</span> &
               <span className="text-amber-500"> Knowledge Flourishes</span>{" "}
-              Together
+              Together bls bls
             </h1>
 
             <p className="text-lg md:text-xl lg:text-2xl text-gray-700 font-light mb-4 md:mb-7">
