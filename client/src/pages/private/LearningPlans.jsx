@@ -3,6 +3,7 @@ import { useLearning } from "../../context/LearningContext";
 import LearningPlanCard from "../../components/learning/LearningPlanCard";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { Link, useNavigate } from "react-router-dom";
+import PlanImg from "../../assets/images/plan.svg";
 
 const LearningPlans = () => {
   const {
@@ -13,6 +14,7 @@ const LearningPlans = () => {
     editLearningPlan,
     importLearningPlan,
     removeLearningPlan,
+    removeProgressUpdate,
   } = useLearning();
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [selectedPublicPlan, setSelectedPublicPlan] = useState(null);
@@ -60,6 +62,20 @@ const LearningPlans = () => {
       alert("Plan imported successfully!");
     } catch (error) {
       alert("Failed to import plan: " + error.message);
+    }
+  };
+
+  // New function to handle deleting a progress update
+  const handleDeleteProgressUpdate = async (updateId) => {
+    if (
+      window.confirm("Are you sure you want to delete this progress update?")
+    ) {
+      try {
+        await removeProgressUpdate(updateId);
+        alert("Progress update deleted successfully!");
+      } catch (error) {
+        alert("Failed to delete progress update: " + error.message);
+      }
     }
   };
 
@@ -264,9 +280,22 @@ const LearningPlans = () => {
                 {/* Plan Header */}
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      {selectedPlan.title}
-                    </h2>
+                    <div>
+                      <div className="flex items-center">
+                        <h2 className="text-2xl font-bold text-gray-800">
+                          {selectedPlan.title}
+                        </h2>
+                        <span
+                          className={`ml-3 px-2 py-1 text-xs font-medium rounded ${
+                            selectedPlan.public
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {selectedPlan.public ? "Public" : "Private"}
+                        </span>
+                      </div>
+                    </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() =>
@@ -340,14 +369,6 @@ const LearningPlans = () => {
                   <nav className="flex -mb-px">
                     <button className="py-3 px-4 font-medium text-amber-500 border-b-2 border-amber-500">
                       Topics
-                    </button>
-                    <button
-                      onClick={() =>
-                        navigate(`/progress-update/${selectedPlan.id}`)
-                      }
-                      className="py-3 px-4 font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700"
-                    >
-                      Post Update
                     </button>
                   </nav>
                 </div>
@@ -453,9 +474,19 @@ const LearningPlans = () => {
 
                 {/* Latest Progress Update */}
                 <div className="p-6 border-t border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Latest Progress
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Latest Progress
+                    </h3>
+                    <button
+                      onClick={() =>
+                        navigate(`/progress-update/${selectedPlan.id}`)
+                      }
+                      className="bg-amber-500 text-white px-6 py-2 rounded-lg hover:bg-amber-600 transition-colors"
+                    >
+                      + Post Update
+                    </button>
+                  </div>
                   <LearningPlanCard plan={selectedPlan} />
                 </div>
 
@@ -477,9 +508,59 @@ const LearningPlans = () => {
                             key={update.id}
                             className="bg-gray-50 rounded-lg p-4"
                           >
-                            <h4 className="font-medium text-gray-800">
-                              {update.title}
-                            </h4>
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-medium text-gray-800">
+                                {update.title}
+                              </h4>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() =>
+                                    navigate(
+                                      `/edit-progress-update/${update.id}`
+                                    )
+                                  }
+                                  className="text-gray-600 hover:text-amber-500 p-2 rounded-full hover:bg-gray-100"
+                                  title="Edit Update"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                    ></path>
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteProgressUpdate(update.id)
+                                  }
+                                  className="text-gray-600 hover:text-red-500 p-2 rounded-full hover:bg-gray-100"
+                                  title="Delete Update"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    ></path>
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
                             <p className="text-gray-600 mt-1">
                               {update.content}
                             </p>
@@ -500,6 +581,25 @@ const LearningPlans = () => {
               </div>
             ) : selectedPublicPlan && activeTab === "publicPlans" ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white rounded-t-lg p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={selectedPublicPlan.user.picture}
+                        alt={selectedPublicPlan.user.name}
+                        className="w-16 h-16 rounded-full border-2 border-white shadow-md"
+                      />
+                      <div>
+                        <h1 className="text-2xl font-bold text-gray-800">
+                          {selectedPublicPlan.user.name}
+                        </h1>
+                        <p className="text-gray-600">
+                          {selectedPublicPlan.user.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div className="p-6 border-b border-gray-200">
                   <h2 className="text-2xl font-bold text-gray-800">
                     {selectedPublicPlan.title}
@@ -565,7 +665,7 @@ const LearningPlans = () => {
             ) : (
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col items-center justify-center h-64">
                 <img
-                  src="/api/placeholder/150/150"
+                  src={PlanImg}
                   alt="Select a plan"
                   className="w-24 h-24 mb-4 opacity-50"
                 />

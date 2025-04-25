@@ -12,20 +12,20 @@ const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/auth/user`, {
-        withCredentials: true,
+      const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+        withCredentials: true, // Ensure cookies/session is sent
       });
-      setUser(response.data);
-      // console.log(response);
+      setUser(response.data); // Expecting User object from /api/users/me
     } catch (err) {
-      setUser(null);
+      console.error("Auth check failed:", err.response?.data || err.message);
+      setUser(null); // Clear user on failure (e.g., 401 Unauthorized or 404 Not Found)
     } finally {
       setLoading(false);
     }
   };
 
   const login = (provider) => {
-    // No need for try-catch here since it's just a redirect
+    // Redirect to OAuth2 authorization endpoint
     window.location.href = `${API_BASE_URL}/oauth2/authorization/${provider}`;
   };
 
@@ -34,7 +34,7 @@ const AuthProvider = ({ children }) => {
       setLoading(true);
       await axios.post(`${API_BASE_URL}/logout`, {}, { withCredentials: true });
       setUser(null);
-      window.location.href = "/login"; // Redirect to login after logout
+      window.location.href = "/login"; // Redirect to login page after logout
       return true;
     } catch (err) {
       console.error("Logout failed:", err.response?.data || err.message);
@@ -45,7 +45,7 @@ const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    checkAuth();
+    checkAuth(); // Run on mount to verify authentication status
   }, []);
 
   const value = {
@@ -59,6 +59,12 @@ const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-const useAuth = () => useContext(AuthContext);
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
 
 export { AuthProvider, useAuth };

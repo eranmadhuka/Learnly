@@ -60,6 +60,9 @@ const Header = ({ onMenuToggle }) => {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   disabled={loading}
                 >
+                  <span className="hidden md:inline text-sm font-medium text-gray-700 truncate">
+                    {user.name}
+                  </span>
                   {imageLoading && (
                     <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gray-200 animate-pulse"></div>
                   )}
@@ -72,9 +75,6 @@ const Header = ({ onMenuToggle }) => {
                     onLoad={handleImageLoad}
                     onError={() => setImageLoading(false)}
                   />
-                  <span className="hidden md:inline text-sm font-medium text-gray-700 truncate max-w-[100px]">
-                    {user.name}
-                  </span>
                 </button>
                 {dropdownOpen && (
                   <>

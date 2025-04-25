@@ -13,7 +13,7 @@ const DashboardLayout = ({ children }) => {
 
           {/* Main Content */}
           <main className="flex-1">
-            <div className="rounded-lg p-6 bg-white min-h-[calc(100vh-theme(spacing.32))]">
+            <div className="rounded-lg bg-white min-h-[calc(100vh-theme(spacing.32))]">
               {children}
             </div>
           </main>

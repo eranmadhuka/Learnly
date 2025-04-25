@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, Group, Bell, Settings } from "lucide-react";
-import axios from "axios";
+import {
+  Home,
+  Users,
+  Group,
+  Bell,
+  Settings,
+  BookOpenCheck,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import UserImg from "../../assets/images/user.png";
 
@@ -150,8 +156,8 @@ const Sidebar = () => {
                 "/learning-plans"
               )}`}
             >
-              <Home size={20} />
-              <span>Learn</span>
+              <BookOpenCheck size={20} />
+              <span>Learning Plans</span>
             </Link>
           </li>
           <li>

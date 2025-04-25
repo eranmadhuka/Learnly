@@ -12,6 +12,7 @@ import LearningPlans from "./pages/private/LearningPlans";
 import CreateLearningPlan from "./components/learning/CreateLearningPlan";
 import EditLearningPlan from "./components/learning/EditLearningPlan";
 import ProgressUpdateForm from "./components/learning/ProgressUpdateForm";
+import EditProgressUpdate from "./components/learning/EditProgressUpdate";
 
 function App() {
   return (
@@ -24,8 +25,10 @@ function App() {
           <Route path="/register" element={<Register />} />
 
           <Route element={<PrivateRoute />}>
+            {/* User Profile Routes */}
             <Route path="/profile" element={<Profile />} />
-            <Route path="/feed" element={<Feed />} />
+            <Route path="/profile/:userId" element={<Profile />} />
+            {/* <Route path="/profile/:id" element={<Profile />} /> */}
 
             {/* Learning plans Routes */}
             <Route path="/learning-plans" element={<LearningPlans />} />
@@ -41,6 +44,12 @@ function App() {
               path="/progress-update/:learningPlanId"
               element={<ProgressUpdateForm />}
             />
+            <Route
+              path="/edit-progress-update/:progressId"
+              element={<EditProgressUpdate />}
+            />
+
+            <Route path="/feed" element={<Feed />} />
           </Route>
         </Routes>
       </div>

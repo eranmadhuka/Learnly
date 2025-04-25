@@ -16,11 +16,6 @@ public class LearningPlanService {
     private LearningPlanRepository learningPlanRepository;
 
     public LearningPlan createLearningPlan(LearningPlan learningPlan) {
-        if (learningPlan.getUserId() == null) {
-            throw new IllegalArgumentException("User ID must be provided to create a learning plan");
-        }
-        learningPlan.setCreatedAt(new Date());
-        learningPlan.setUpdatedAt(new Date());
         return learningPlanRepository.save(learningPlan);
     }
 
@@ -43,7 +38,7 @@ public class LearningPlanService {
             updatedPlan.setTitle(learningPlan.getTitle());
             updatedPlan.setDescription(learningPlan.getDescription());
             updatedPlan.setTopics(learningPlan.getTopics());
-            updatedPlan.setPublic(learningPlan.isPublic());
+            updatedPlan.setIsPublic(learningPlan.isPublic());
             updatedPlan.setUpdatedAt(learningPlan.getUpdatedAt());
             return learningPlanRepository.save(updatedPlan);
         }
