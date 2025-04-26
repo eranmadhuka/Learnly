@@ -48,7 +48,7 @@ const Feed = () => {
           posts.map((post) => (
             <div
               key={post.id}
-              className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 mb-8"
+              className="bg-white dark:bg-white shadow-lg rounded-2xl p-6 mb-8"
             >
               <h2 className="text-2xl font-semibold mb-2">{post.title}</h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
@@ -84,7 +84,7 @@ const Feed = () => {
               )}
 
               {/* Likes and Comments Count */}
-              <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center justify-between text-sm text-gray-900 dark:text-gray-400">
                 <div>
                   <span className="font-medium">{post.likes.length}</span> Likes
                 </div>
@@ -100,7 +100,7 @@ const Feed = () => {
                   <h3 className="text-lg font-semibold mb-2">Comments:</h3>
                   {post.comments.map((comment) => (
                     <div key={comment.id} className="mb-3">
-                      <p className="text-gray-800 dark:text-gray-200">
+                      <p className="text-gray-900 dark:text-gray-900">
                         {comment.content}
                       </p>
                       <p className="text-xs text-gray-400">
