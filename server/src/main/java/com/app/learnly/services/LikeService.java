@@ -16,6 +16,14 @@ public class LikeService {
     }
 
     public Like createLike(Like like) {
+        // Check if user already liked the post
+        Like existingLike = likeRepository.findByPostIdAndUserId(like.getPostId(), like.getUserId());
+        if (existingLike != null) {
+            // If already liked, unlike (delete the like)
+            likeRepository.delete(existingLike);
+            return null; // Return null indicating it was unliked
+        }
+        // If not liked, create new like
         return likeRepository.save(like);
     }
 

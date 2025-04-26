@@ -6,6 +6,7 @@ const Feed = () => {
   const [posts, setPosts] = useState([]);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedContent, setEditedContent] = useState("");
+  const [newComment, setNewComment] = useState({}); // postId -> new comment text
 
   useEffect(() => {
     fetchPosts();
@@ -45,7 +46,7 @@ const Feed = () => {
       await axios.delete(`http://localhost:8081/api/comments/${commentId}`, {
         withCredentials: true,
       });
-      fetchPosts(); // Reload posts after delete
+      fetchPosts();
     } catch (err) {
       console.error(err);
     }
@@ -67,15 +68,66 @@ const Feed = () => {
         `http://localhost:8081/api/comments/${commentId}`,
         editedContent,
         {
-          headers: {
-            "Content-Type": "text/plain",
-          },
+          headers: { "Content-Type": "text/plain" },
           withCredentials: true,
         }
       );
       setEditingCommentId(null);
       setEditedContent("");
-      fetchPosts(); // Reload posts after edit
+      fetchPosts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleNewCommentChange = (postId, value) => {
+    setNewComment({ ...newComment, [postId]: value });
+  };
+
+  const addNewComment = async (postId) => {
+    try {
+      await axios.post(
+        `http://localhost:8081/api/comments`,
+        {
+          postId,
+          content: newComment[postId],
+          userId: "", // leave empty, backend can fetch from session (or add if needed)
+        },
+        { withCredentials: true }
+      );
+
+      setNewComment({ ...newComment, [postId]: "" });
+      fetchPosts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const likePost = async (postId) => {
+    try {
+      await axios.post(
+        `http://localhost:8081/api/likes`,
+        {
+          postId,
+          userId: "", // backend fetches from session
+        },
+        { withCredentials: true }
+      );
+      fetchPosts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const unlikePost = async (postId) => {
+    try {
+      await axios.delete(
+        `http://localhost:8081/api/likes/post/${postId}/user/current`,
+        {
+          withCredentials: true,
+        }
+      );
+      fetchPosts();
     } catch (err) {
       console.error(err);
     }
@@ -124,9 +176,21 @@ const Feed = () => {
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-sm text-gray-900 dark:text-gray-500">
-                <div>
-                  <span className="font-medium">{post.likes.length}</span> Likes
+              <div className="flex items-center justify-between text-sm text-gray-900 dark:text-gray-500 mb-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => likePost(post.id)}
+                    className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs"
+                  >
+                    Like
+                  </button>
+                  <button
+                    onClick={() => unlikePost(post.id)}
+                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+                  >
+                    Unlike
+                  </button>
+                  <span className="ml-2">{post.likes.length} Likes</span>
                 </div>
                 <div>
                   <span className="font-medium">{post.comments.length}</span>{" "}
@@ -192,6 +256,25 @@ const Feed = () => {
                   ))}
                 </div>
               )}
+
+              {/* Add New Comment Section */}
+              <div className="mt-4">
+                <textarea
+                  placeholder="Write a comment..."
+                  value={newComment[post.id] || ""}
+                  onChange={(e) =>
+                    handleNewCommentChange(post.id, e.target.value)
+                  }
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring resize-none mb-2"
+                  rows="2"
+                />
+                <button
+                  onClick={() => addNewComment(post.id)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  Add Comment
+                </button>
+              </div>
             </div>
           ))
         )}
