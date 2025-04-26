@@ -43,25 +43,31 @@ public class PostController {
     }
 
     @PutMapping("/{postId}")
-    public ResponseEntity<Post> updatePost(@PathVariable String postId, @RequestBody Post postUpdates, @AuthenticationPrincipal OAuth2User principal) {
+    public ResponseEntity<?> updatePost(@PathVariable String postId, @RequestBody Post postUpdates, @AuthenticationPrincipal OAuth2User principal) {
         try {
             String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
             User user = userRepository.findByProviderId(providerId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             Optional<Post> existingPost = postService.findById(postId);
-            if (existingPost.isEmpty()) return ResponseEntity.notFound().build();
+            if (existingPost.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found");
+            }
 
             Post post = existingPost.get();
-            if (!post.getUser().getId().equals(user.getId())) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            if (!post.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to update this post");
+            }
 
             Post updatedPost = postService.updatePost(postId, postUpdates);
-            return ResponseEntity.ok(updatedPost);
+
+            return ResponseEntity.ok("Post updated successfully"); // ✅ Success Message
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while updating the post");
         }
     }
+
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<?> getPostsByUserId(@PathVariable String userId) {
@@ -110,7 +116,6 @@ public class PostController {
             }
 
             Post post = existingPost.get();
-            if (!post.getUser().getId().equals(user.getId())) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             if (!post.getUser().getId().equals(user.getId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to delete this post");
             }
