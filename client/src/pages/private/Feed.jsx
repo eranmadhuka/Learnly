@@ -103,29 +103,15 @@ const Feed = () => {
     }
   };
 
-  const likePost = async (postId) => {
+  const toggleLike = async (postId) => {
     try {
       await axios.post(
         `http://localhost:8081/api/likes`,
         {
           postId,
-          userId: "", // backend fetches from session
+          userId: "", // backend uses session user
         },
         { withCredentials: true }
-      );
-      fetchPosts();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const unlikePost = async (postId) => {
-    try {
-      await axios.delete(
-        `http://localhost:8081/api/likes/post/${postId}/user/current`,
-        {
-          withCredentials: true,
-        }
       );
       fetchPosts();
     } catch (err) {
@@ -179,17 +165,12 @@ const Feed = () => {
               <div className="flex items-center justify-between text-sm text-gray-900 dark:text-gray-500 mb-4">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => likePost(post.id)}
+                    onClick={() => toggleLike(post.id)}
                     className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs"
                   >
-                    Like
+                    {post.likes.length > 0 ? "Unlike" : "Like"}
                   </button>
-                  <button
-                    onClick={() => unlikePost(post.id)}
-                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
-                  >
-                    Unlike
-                  </button>
+
                   <span className="ml-2">{post.likes.length} Likes</span>
                 </div>
                 <div>
