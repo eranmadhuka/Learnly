@@ -4,6 +4,8 @@ import axios from "axios";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editedContent, setEditedContent] = useState("");
 
   useEffect(() => {
     fetchPosts();
@@ -38,6 +40,47 @@ const Feed = () => {
     }
   };
 
+  const deleteComment = async (commentId) => {
+    try {
+      await axios.delete(`http://localhost:8081/api/comments/${commentId}`, {
+        withCredentials: true,
+      });
+      fetchPosts(); // Reload posts after delete
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const startEditing = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditedContent(comment.content);
+  };
+
+  const cancelEditing = () => {
+    setEditingCommentId(null);
+    setEditedContent("");
+  };
+
+  const saveEditedComment = async (commentId) => {
+    try {
+      await axios.put(
+        `http://localhost:8081/api/comments/${commentId}`,
+        editedContent,
+        {
+          headers: {
+            "Content-Type": "text/plain",
+          },
+          withCredentials: true,
+        }
+      );
+      setEditingCommentId(null);
+      setEditedContent("");
+      fetchPosts(); // Reload posts after edit
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto p-6">
@@ -55,7 +98,6 @@ const Feed = () => {
                 {post.content}
               </p>
 
-              {/* Media preview if you want */}
               {post.mediaUrls && post.mediaUrls.length > 0 && (
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   {post.mediaUrls.map((url, index) => (
@@ -69,7 +111,6 @@ const Feed = () => {
                 </div>
               )}
 
-              {/* Tags */}
               {post.tags && post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {post.tags.map((tag, idx) => (
@@ -83,7 +124,6 @@ const Feed = () => {
                 </div>
               )}
 
-              {/* Likes and Comments Count */}
               <div className="flex items-center justify-between text-sm text-gray-900 dark:text-gray-500">
                 <div>
                   <span className="font-medium">{post.likes.length}</span> Likes
@@ -94,18 +134,60 @@ const Feed = () => {
                 </div>
               </div>
 
-              {/* Comments Section */}
               {post.comments.length > 0 && (
                 <div className="mt-4 border-t pt-4">
                   <h3 className="text-lg font-semibold mb-2">Comments:</h3>
                   {post.comments.map((comment) => (
-                    <div key={comment.id} className="mb-3">
-                      <p className="text-gray-900 dark:text-gray-900">
-                        {comment.content}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(comment.createdAt).toLocaleString()}
-                      </p>
+                    <div
+                      key={comment.id}
+                      className="mb-3 p-3 rounded-lg bg-gray-100 flex flex-col"
+                    >
+                      {editingCommentId === comment.id ? (
+                        <>
+                          <textarea
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            className="w-full p-2 rounded-md border focus:outline-none focus:ring"
+                          />
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => saveEditedComment(comment.id)}
+                              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-gray-900 dark:text-gray-900">
+                            {comment.content}
+                          </p>
+                          <p className="text-xs text-gray-400 mb-2">
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </p>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => startEditing(comment)}
+                              className="text-blue-600 text-xs hover:underline"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteComment(comment.id)}
+                              className="text-red-600 text-xs hover:underline"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
