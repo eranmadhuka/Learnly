@@ -51,7 +51,7 @@ const Feed = () => {
               className="bg-white dark:bg-white shadow-lg rounded-2xl p-6 mb-8"
             >
               <h2 className="text-2xl font-semibold mb-2">{post.title}</h2>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
+              <p className="text-gray-700 dark:text-gray-600 mb-4">
                 {post.content}
               </p>
 
@@ -84,7 +84,7 @@ const Feed = () => {
               )}
 
               {/* Likes and Comments Count */}
-              <div className="flex items-center justify-between text-sm text-gray-900 dark:text-gray-400">
+              <div className="flex items-center justify-between text-sm text-gray-900 dark:text-gray-500">
                 <div>
                   <span className="font-medium">{post.likes.length}</span> Likes
                 </div>
