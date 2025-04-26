@@ -105,16 +105,23 @@ public class PostController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             Optional<Post> existingPost = postService.findById(postId);
-            if (existingPost.isEmpty()) return ResponseEntity.notFound().build();
+            if (existingPost.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found");
+            }
 
             Post post = existingPost.get();
             if (!post.getUser().getId().equals(user.getId())) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            if (!post.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to delete this post");
+            }
 
             postService.deletePost(postId);
-            return ResponseEntity.ok().build();
+
+            return ResponseEntity.ok("Post deleted successfully"); // ✅ Success Message
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while deleting the post");
         }
     }
+
 }
