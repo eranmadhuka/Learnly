@@ -119,6 +119,42 @@ public class LearningPlanController {
         return new ResponseEntity<>(publicPlans, HttpStatus.OK);
     }
 
+    // Update an existing learning plan
+
+    @PutMapping("/{id}")
+    public ResponseEntity<LearningPlan> updateLearningPlan(
+            @PathVariable String id,
+            @RequestBody LearningPlan learningPlan,
+            @AuthenticationPrincipal OAuth2User principal) {
+        String providerId = principal.getAttribute("sub") != null
+                ? principal.getAttribute("sub")
+                : principal.getAttribute("id");
+        Optional<User> userOptional = userRepository.findByProviderId(providerId);
+        if (!userOptional.isPresent()) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        User user = userOptional.get();
+        Optional<LearningPlan> existingPlanOptional = learningPlanService.getLearningPlanById(id);
+        if (!existingPlanOptional.isPresent()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        LearningPlan existingPlan = existingPlanOptional.get();
+        if (!existingPlan.getUser().getId().equals(user.getId())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN); // Only owner can update
+        }
+
+        learningPlan.setUser(user); // Ensure user remains consistent
+        learningPlan.setUpdatedAt(new Date());
+        LearningPlan updatedPlan = learningPlanService.updateLearningPlan(id, learningPlan);
+
+        if (updatedPlan != null) {
+            return new ResponseEntity<>(updatedPlan, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
     // Import a public learning plan to the user's dashboard
     @PostMapping("/import/{planId}")
     public ResponseEntity<LearningPlan> importLearningPlan(
@@ -184,42 +220,6 @@ public class LearningPlanController {
         learningPlanService.updateLearningPlan(originalPlan.getId(), originalPlan);
 
         return new ResponseEntity<>(savedPlan, HttpStatus.CREATED);
-    }
-
-    // Update an existing learning plan
-    @PutMapping("/{id}")
-    public ResponseEntity<LearningPlan> updateLearningPlan(
-            @PathVariable String id,
-            @RequestBody LearningPlan learningPlan,
-            @AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub") != null
-                ? principal.getAttribute("sub")
-                : principal.getAttribute("id");
-        Optional<User> userOptional = userRepository.findByProviderId(providerId);
-        if (!userOptional.isPresent()) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        User user = userOptional.get();
-        Optional<LearningPlan> existingPlanOptional = learningPlanService.getLearningPlanById(id);
-        if (!existingPlanOptional.isPresent()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        LearningPlan existingPlan = existingPlanOptional.get();
-        if (!existingPlan.getUser().getId().equals(user.getId())) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN); // Only owner can update
-        }
-
-        learningPlan.setUser(user); // Ensure user remains consistent
-        learningPlan.setUpdatedAt(new Date());
-        LearningPlan updatedPlan = learningPlanService.updateLearningPlan(id, learningPlan);
-
-        if (updatedPlan != null) {
-            return new ResponseEntity<>(updatedPlan, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
     }
 
     // Delete a learning plan
