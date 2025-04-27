@@ -1,10 +1,10 @@
 package com.app.learnly.controllers;
 
-
-
 import com.app.learnly.models.Comment;
 import com.app.learnly.services.CommentService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +19,9 @@ public class CommentController {
     }
 
     @PostMapping
-    public ResponseEntity<Comment> createComment(@RequestBody Comment comment) {
+    public ResponseEntity<Comment> createComment(@RequestBody Comment comment, @AuthenticationPrincipal OAuth2User principal) {
+        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+        comment.setUserId(providerId);
         return ResponseEntity.ok(commentService.createComment(comment));
     }
 
