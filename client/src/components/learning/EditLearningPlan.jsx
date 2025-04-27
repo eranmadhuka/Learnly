@@ -44,7 +44,7 @@ const EditLearningPlan = () => {
         public: initialPlan.public || false,
       });
     } else {
-      // If no plan is found, redirect back
+      // If no plan is found, redirect
       navigate("/learning-plans");
     }
   }, [id, learningPlans, navigate]);
