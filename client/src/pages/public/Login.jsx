@@ -21,7 +21,7 @@ export default function Login() {
             Welcome to <span className="text-amber-500">Learnly</span>
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            Where skills are shared and knowledge flourishes
+            Where skills are shared and knowledge flourishe
           </p>
         </div>
 
