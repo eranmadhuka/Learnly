@@ -245,22 +245,18 @@ const Feed = () => {
                               {comment.content}
                             </p>
                             <div className="flex gap-3 mt-2">
-                              {isCommentOwner && (
-                                <button
-                                  onClick={() => startEditing(comment)}
-                                  className="text-blue-600 text-xs hover:underline"
-                                >
-                                  Edit
-                                </button>
-                              )}
-                              {(isCommentOwner || isPostOwner) && (
-                                <button
-                                  onClick={() => deleteComment(comment.id)}
-                                  className="text-red-600 text-xs hover:underline"
-                                >
-                                  Delete
-                                </button>
-                              )}
+                              <button
+                                onClick={() => startEditing(comment)}
+                                className="text-blue-600 text-xs hover:underline"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => deleteComment(comment.id)}
+                                className="text-red-600 text-xs hover:underline"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </>
                         )}
