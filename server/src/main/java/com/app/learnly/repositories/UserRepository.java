@@ -2,6 +2,7 @@ package com.app.learnly.repositories;
 
 import com.app.learnly.models.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,4 +13,12 @@ public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByProviderId(String providerId);
     Optional<User> findByEmail(String email);
     List<User> findByIdIn(List<String> ids);
+
+    /**
+     * Finds all users except the one with the specified provider ID.
+     * @param providerId Provider ID to exclude
+     * @return List of users
+     */
+    @Query("{ 'providerId': { $ne: ?0 } }")
+    List<User> findByProviderIdNot(String providerId);
 }

@@ -28,28 +28,34 @@ public class LearningPlanController {
     private UserRepository userRepository;
 
     // Create a new learning plan with visibility
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<LearningPlan> createLearningPlan(
             @RequestBody LearningPlan learningPlan,
             @AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub");
+        try {
+            String providerId = principal.getAttribute("sub") != null
+                    ? principal.getAttribute("sub")
+                    : principal.getAttribute("id");
 
-        Optional<User> userOptional = userRepository.findByProviderId(providerId);
-        if (!userOptional.isPresent()) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            Optional<User> userOptional = userRepository.findByProviderId(providerId);
+            if (!userOptional.isPresent()) {
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            }
+
+            User user = userOptional.get();
+            learningPlan.setUser(user); // Set the User object
+            learningPlan.setCreatedAt(new Date());
+            learningPlan.setUpdatedAt(new Date());
+            if (learningPlan.getFollowers() == null) {
+                learningPlan.setFollowers(new ArrayList<>());
+            }
+
+            LearningPlan createdPlan = learningPlanService.createLearningPlan(learningPlan);
+            return new ResponseEntity<>(createdPlan, HttpStatus.CREATED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        User user = userOptional.get();
-        learningPlan.setUserId(user.getId()); // Set MongoDB ObjectId
-        learningPlan.setCreatedAt(new Date());
-        learningPlan.setUpdatedAt(new Date());
-        if (learningPlan.getFollowers() == null) {
-            learningPlan.setFollowers(new ArrayList<>()); // Initialize followers if null
-        }
-        // isPublic defaults to false in the model, so no need to set it explicitly unless provided
-
-        LearningPlan createdPlan = learningPlanService.createLearningPlan(learningPlan);
-        return new ResponseEntity<>(createdPlan, HttpStatus.CREATED);
     }
 
     // Get a specific learning plan by ID (only if public or owned by user)
@@ -63,7 +69,9 @@ public class LearningPlanController {
         }
 
         LearningPlan plan = planOptional.get();
-        String providerId = principal.getAttribute("sub");
+        String providerId = principal.getAttribute("sub") != null
+                ? principal.getAttribute("sub")
+                : principal.getAttribute("id");
         Optional<User> userOptional = userRepository.findByProviderId(providerId);
         if (!userOptional.isPresent()) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -71,7 +79,7 @@ public class LearningPlanController {
 
         User user = userOptional.get();
         // Check visibility: allow access if public or owned by the user
-        if (!plan.isPublic() && !plan.getUserId().equals(user.getId())) {
+        if (!plan.isPublic() && !plan.getUser().getId().equals(user.getId())) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
@@ -83,7 +91,9 @@ public class LearningPlanController {
     public ResponseEntity<List<LearningPlan>> getLearningPlansByUserId(
             @PathVariable String userId,
             @AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub");
+        String providerId = principal.getAttribute("sub") != null
+                ? principal.getAttribute("sub")
+                : principal.getAttribute("id");
         Optional<User> userOptional = userRepository.findByProviderId(providerId);
         if (!userOptional.isPresent()) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -98,6 +108,7 @@ public class LearningPlanController {
         List<LearningPlan> plans = learningPlanService.getLearningPlansByUserId(userId);
         return new ResponseEntity<>(plans, HttpStatus.OK);
     }
+
 
     // Get all public learning plans
     @GetMapping("/public")
@@ -114,7 +125,9 @@ public class LearningPlanController {
     public ResponseEntity<LearningPlan> importLearningPlan(
             @PathVariable String planId,
             @AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub");
+        String providerId = principal.getAttribute("sub") != null
+                ? principal.getAttribute("sub")
+                : principal.getAttribute("id");
         Optional<User> userOptional = userRepository.findByProviderId(providerId);
         if (!userOptional.isPresent()) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -133,13 +146,36 @@ public class LearningPlanController {
 
         // Create a new plan for the user based on the public plan
         LearningPlan importedPlan = new LearningPlan();
-        importedPlan.setUserId(user.getId());
+        importedPlan.setUser(user); // Set the User object
         importedPlan.setTitle(originalPlan.getTitle());
         importedPlan.setDescription(originalPlan.getDescription());
-        importedPlan.setTopics(originalPlan.getTopics()); // Copy topics
+
+        // Create a deep copy of topics with completed set to false
+        List<LearningPlan.Topic> resetTopics = originalPlan.getTopics().stream()
+                .map(topic -> {
+                    LearningPlan.Topic newTopic = new LearningPlan.Topic();
+                    newTopic.setTitle(topic.getTitle());
+                    newTopic.setDescription(topic.getDescription());
+                    // Create a deep copy of resources
+                    List<LearningPlan.Resource> newResources = topic.getResources().stream()
+                            .map(resource -> {
+                                LearningPlan.Resource newResource = new LearningPlan.Resource();
+                                newResource.setTitle(resource.getTitle());
+                                newResource.setUrl(resource.getUrl());
+                                newResource.setType(resource.getType());
+                                return newResource;
+                            })
+                            .collect(Collectors.toList());
+                    newTopic.setResources(newResources);
+                    newTopic.setCompleted(false); // Explicitly set completed to false
+                    return newTopic;
+                })
+                .collect(Collectors.toList());
+
+        importedPlan.setTopics(resetTopics);
         importedPlan.setCreatedAt(new Date());
         importedPlan.setUpdatedAt(new Date());
-        importedPlan.setPublic(false); // Imported plans default to private
+        importedPlan.setIsPublic(false); // Imported plans default to private
         importedPlan.setFollowers(new ArrayList<>()); // No followers initially
 
         LearningPlan savedPlan = learningPlanService.createLearningPlan(importedPlan);
@@ -157,7 +193,9 @@ public class LearningPlanController {
             @PathVariable String id,
             @RequestBody LearningPlan learningPlan,
             @AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub");
+        String providerId = principal.getAttribute("sub") != null
+                ? principal.getAttribute("sub")
+                : principal.getAttribute("id");
         Optional<User> userOptional = userRepository.findByProviderId(providerId);
         if (!userOptional.isPresent()) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -170,11 +208,11 @@ public class LearningPlanController {
         }
 
         LearningPlan existingPlan = existingPlanOptional.get();
-        if (!existingPlan.getUserId().equals(user.getId())) {
+        if (!existingPlan.getUser().getId().equals(user.getId())) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN); // Only owner can update
         }
 
-        learningPlan.setUserId(user.getId()); // Ensure userId remains consistent
+        learningPlan.setUser(user); // Ensure user remains consistent
         learningPlan.setUpdatedAt(new Date());
         LearningPlan updatedPlan = learningPlanService.updateLearningPlan(id, learningPlan);
 
@@ -190,7 +228,9 @@ public class LearningPlanController {
     public ResponseEntity<Void> deleteLearningPlan(
             @PathVariable String id,
             @AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub");
+        String providerId = principal.getAttribute("sub") != null
+                ? principal.getAttribute("sub")
+                : principal.getAttribute("id");
         Optional<User> userOptional = userRepository.findByProviderId(providerId);
         if (!userOptional.isPresent()) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -203,7 +243,7 @@ public class LearningPlanController {
         }
 
         LearningPlan plan = planOptional.get();
-        if (!plan.getUserId().equals(user.getId())) {
+        if (!plan.getUser().getId().equals(user.getId())) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN); // Only owner can delete
         }
 

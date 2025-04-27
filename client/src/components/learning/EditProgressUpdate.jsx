@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLearning } from "../../context/LearningContext";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 
-const ProgressUpdateForm = () => {
-  const { addProgressUpdate } = useLearning();
-  const { learningPlanId } = useParams();
+const EditProgressUpdate = () => {
+  const { progressUpdates, editProgressUpdate } = useLearning();
+  const { progressId, learningPlanId } = useParams();
   const navigate = useNavigate();
 
   const [update, setUpdate] = useState({
@@ -22,13 +22,36 @@ const ProgressUpdateForm = () => {
     general_update: "Here's my latest progress update.",
   };
 
+  useEffect(() => {
+    const fetchUpdate = () => {
+      try {
+        const existingUpdate = progressUpdates.find(
+          (update) => update.id === progressId
+        );
+        if (!existingUpdate) {
+          throw new Error("Progress update not found");
+        }
+        setUpdate({
+          learningPlanId: existingUpdate.learningPlanId || learningPlanId,
+          title: existingUpdate.title || "",
+          content: existingUpdate.content || "",
+          mediaUrls: existingUpdate.mediaUrls || [],
+          template: existingUpdate.template || "general_update",
+        });
+      } catch (error) {
+        alert("Failed to load progress update: " + error.message);
+      }
+    };
+    fetchUpdate();
+  }, [progressId, learningPlanId, progressUpdates]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await addProgressUpdate(update);
+      await editProgressUpdate(progressId, update);
       navigate(`/learning-plans`);
     } catch (error) {
-      alert(error.message);
+      alert("Failed to update: " + error.message);
     }
   };
 
@@ -45,7 +68,7 @@ const ProgressUpdateForm = () => {
     <DashboardLayout>
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Post Progress Update
+          Edit Progress Update
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -97,7 +120,10 @@ const ProgressUpdateForm = () => {
               type="text"
               value={update.mediaUrls.join(", ")}
               onChange={(e) =>
-                setUpdate({ ...update, mediaUrls: e.target.value.split(", ") })
+                setUpdate({
+                  ...update,
+                  mediaUrls: e.target.value ? e.target.value.split(", ") : [],
+                })
               }
               className="mt-1 w-full p-3 border rounded-md focus:ring-amber-500 focus:border-amber-500"
               placeholder="Enter URLs separated by commas"
@@ -108,7 +134,7 @@ const ProgressUpdateForm = () => {
               type="submit"
               className="flex-1 bg-amber-500 text-white p-3 rounded-md hover:bg-amber-600"
             >
-              Post Update
+              Save Changes
             </button>
             <button
               type="button"
@@ -124,4 +150,4 @@ const ProgressUpdateForm = () => {
   );
 };
 
-export default ProgressUpdateForm;
+export default EditProgressUpdate;

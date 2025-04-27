@@ -60,7 +60,7 @@ export const LearningProvider = ({ children }) => {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/plans`,
-        { ...planData, userId: user.id },
+        planData, // No need to set userId; backend handles user
         { withCredentials: true }
       );
       const newPlan = response.data;

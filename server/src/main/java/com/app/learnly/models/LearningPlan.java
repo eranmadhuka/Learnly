@@ -1,8 +1,10 @@
 package com.app.learnly.models;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -11,18 +13,22 @@ public class LearningPlan {
 
     @Id
     private String id;
-    private String userId;
+
+    @DBRef
+    private User user;
+
     private String title;
     private String description;
     private List<Topic> topics;
-    private String visibility; // "private" or "public"
     private Date createdAt;
     private Date updatedAt;
     private Date completionDate;
-    private List<String> followers; // Keeping this for tracking who imports it
+    private List<String> followers;
     private boolean isPublic = false; // Default to private
 
     public LearningPlan() {
+        this.topics = new ArrayList<>();
+        this.followers = new ArrayList<>();
     }
 
     // Getters and setters
@@ -34,12 +40,12 @@ public class LearningPlan {
         this.id = id;
     }
 
-    public String getUserId() {
-        return userId;
+    public User getUser() {
+        return user;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public String getTitle() {
@@ -66,14 +72,6 @@ public class LearningPlan {
         this.topics = topics;
     }
 
-    public String getVisibility() {
-        return visibility;
-    }
-
-    public void setVisibility(String visibility) {
-        this.visibility = visibility;
-    }
-
     public Date getCreatedAt() {
         return createdAt;
     }
@@ -98,17 +96,33 @@ public class LearningPlan {
         this.completionDate = completionDate;
     }
 
-    public boolean isPublic() { return isPublic; }
-    public void setPublic(boolean isPublic) { this.isPublic = isPublic; }
+    public boolean isPublic() {
+        return isPublic;
+    }
 
-    // Nested Topic class
+    public void setIsPublic(boolean isPublic) { // Changed from setPublic to setIsPublic
+        this.isPublic = isPublic;
+    }
+
+    public List<String> getFollowers() {
+        return followers;
+    }
+
+    public void setFollowers(List<String> followers) {
+        this.followers = followers;
+    }
+
+    // Nested Topic and Resource classes remain unchanged
     public static class Topic {
         private String title;
         private String description;
         private List<Resource> resources;
         private boolean completed = false;
 
-        // Getters and setters
+        public Topic() {
+            this.resources = new ArrayList<>();
+        }
+
         public String getTitle() {
             return title;
         }
@@ -142,13 +156,11 @@ public class LearningPlan {
         }
     }
 
-    // Nested Resource class
     public static class Resource {
         private String title;
         private String url;
-        private String type; // e.g., "video", "article", "book"
+        private String type;
 
-        // Getters and setters
         public String getTitle() {
             return title;
         }
@@ -173,7 +185,4 @@ public class LearningPlan {
             this.type = type;
         }
     }
-
-    public List<String> getFollowers() { return followers; }
-    public void setFollowers(List<String> followers) { this.followers = followers; }
 }
