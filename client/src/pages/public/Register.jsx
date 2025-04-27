@@ -27,7 +27,7 @@ export default function Register() {
             Join <span className="text-amber-500">Learnly</span> Today
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            Start sharing your skills and learning from others
+            Start sharing your skills and learning plans from others
           </p>
         </div>
 
