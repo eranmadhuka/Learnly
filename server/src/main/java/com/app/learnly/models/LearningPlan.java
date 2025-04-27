@@ -24,7 +24,7 @@ public class LearningPlan {
     private Date updatedAt;
     private Date completionDate;
     private List<String> followers;
-    private boolean isPublic = false; // Default to private
+    private boolean isPublic = false;
 
     public LearningPlan() {
         this.topics = new ArrayList<>();
@@ -100,7 +100,7 @@ public class LearningPlan {
         return isPublic;
     }
 
-    public void setIsPublic(boolean isPublic) { // Changed from setPublic to setIsPublic
+    public void setIsPublic(boolean isPublic) {
         this.isPublic = isPublic;
     }
 

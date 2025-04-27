@@ -3,10 +3,11 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import EditProfile from "../../components/profile/EditProfile";
 
 const Profile = () => {
   const { user: currentUser, logout } = useAuth();
-  const { userId } = useParams(); // Get userId from URL for other profiles
+  const { userId } = useParams();
   const navigate = useNavigate();
   const [profileUser, setProfileUser] = useState(null);
   const [followers, setFollowers] = useState([]);
@@ -18,6 +19,7 @@ const Profile = () => {
     bio: "",
     picture: "",
     isPrivate: false,
+    file: null,
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -42,6 +44,7 @@ const Profile = () => {
           bio: userData.bio || "",
           picture: userData.picture || "",
           isPrivate: userData.isPrivate || false,
+          file: null,
         });
 
         if (
@@ -70,9 +73,7 @@ const Profile = () => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/users/${id}/followers`,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       setFollowers(response.data);
     } catch (err) {
@@ -84,9 +85,7 @@ const Profile = () => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/users/${id}/following`,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       setFollowing(response.data);
     } catch (err) {
@@ -98,9 +97,7 @@ const Profile = () => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/posts?userId=${id}`,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       setPosts(response.data);
     } catch (err) {
@@ -132,9 +129,7 @@ const Profile = () => {
       await axios.post(
         `${API_BASE_URL}/api/users/follow/${userId}`,
         {},
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       setIsFollowing(true);
       fetchFollowers(userId);
@@ -176,6 +171,7 @@ const Profile = () => {
         bio: response.data.bio,
         picture: response.data.picture,
         isPrivate: response.data.isPrivate,
+        file: null,
       });
     } catch (err) {
       console.error("Failed to update profile:", err);
@@ -202,67 +198,6 @@ const Profile = () => {
 
   const handleAddPost = () => {
     navigate("/posts/new");
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, picture: reader.result, file });
-      };
-      reader.readAsDataURL(file); // Create preview URL
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: profileUser.name || "",
-      bio: profileUser.bio || "",
-      picture: profileUser.picture || "",
-      file: null,
-    });
-  };
-
-  const handleSaveProfile = async () => {
-    try {
-      let pictureUrl = formData.picture;
-
-      // Upload image to Firebase if a file is selected
-      if (formData.file) {
-        const storageRef = ref(
-          storage,
-          `profile-pictures/${profileUser.id}/${formData.file.name}`
-        );
-        await uploadBytes(storageRef, formData.file);
-        pictureUrl = await getDownloadURL(storageRef);
-      }
-
-      // Update backend with new profile data
-      await axios.put(
-        `${API_BASE_URL}/api/users/me`,
-        {
-          name: formData.name,
-          bio: formData.bio,
-          picture: pictureUrl,
-        },
-        { withCredentials: true }
-      );
-
-      // Refresh profile data
-      const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
-        withCredentials: true,
-      });
-      setProfileUser(response.data);
-      setFormData({
-        name: response.data.name,
-        bio: response.data.bio,
-        picture: response.data.picture,
-        file: null,
-      });
-    } catch (err) {
-      console.error("Failed to update profile:", err);
-    }
   };
 
   if (!currentUser && !userId) {
@@ -655,102 +590,13 @@ const Profile = () => {
                       <h3 className="text-lg font-medium text-gray-800 mb-4">
                         Profile Information
                       </h3>
-                      <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
-                        {/* Profile Picture */}
-                        <div className="flex items-center space-x-6">
-                          <div className="relative">
-                            <img
-                              src={
-                                formData.picture ||
-                                profileUser.picture ||
-                                "https://via.placeholder.com/150"
-                              }
-                              alt="Profile Preview"
-                              className="h-24 w-24 rounded-full object-cover border-2 border-amber-200"
-                            />
-                            {formData.picture && (
-                              <button
-                                onClick={() =>
-                                  setFormData({
-                                    ...formData,
-                                    picture: "",
-                                    file: null,
-                                  })
-                                }
-                                className="absolute top-0 right-0 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition duration-200"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Profile Picture
-                            </label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageChange}
-                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 transition duration-200"
-                            />
-                          </div>
-                        </div>
-                        {/* Name */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Name
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) =>
-                              setFormData({ ...formData, name: e.target.value })
-                            }
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-200"
-                            placeholder="Your name"
-                          />
-                        </div>
-                        {/* Bio */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Bio
-                          </label>
-                          <textarea
-                            value={formData.bio}
-                            onChange={(e) =>
-                              setFormData({ ...formData, bio: e.target.value })
-                            }
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-200"
-                            rows="4"
-                            placeholder="Tell us about yourself"
-                          />
-                        </div>
-                        {/* Save/Cancel Buttons */}
-                        <div className="flex justify-end space-x-4">
-                          <button
-                            onClick={resetForm}
-                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition duration-200"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSaveProfile}
-                            className="px-4 py-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition duration-200"
-                          >
-                            Save Changes
-                          </button>
-                        </div>
+                      <div className="bg-white p-6 rounded-xl shadow-sm">
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          className="px-4 py-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition duration-200"
+                        >
+                          Edit Profile
+                        </button>
                       </div>
                     </div>
                     <div>
@@ -804,104 +650,14 @@ const Profile = () => {
 
           {/* Edit Profile Modal */}
           {isEditing && isOwnProfile && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                  Edit Profile
-                </h2>
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      placeholder="Your name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      Bio
-                    </label>
-                    <textarea
-                      value={formData.bio}
-                      onChange={(e) =>
-                        setFormData({ ...formData, bio: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      rows="4"
-                      placeholder="Tell us about yourself"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      Profile Picture URL
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.picture}
-                      onChange={(e) =>
-                        setFormData({ ...formData, picture: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      placeholder="https://example.com/your-image.jpg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      Profile Visibility
-                    </label>
-                    <div className="flex items-center space-x-4">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, isPrivate: false })
-                        }
-                        className={`px-4 py-2 rounded-lg transition duration-200 ${
-                          !formData.isPrivate
-                            ? "bg-amber-600 text-white"
-                            : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                        }`}
-                      >
-                        Public
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, isPrivate: true })
-                        }
-                        className={`px-4 py-2 rounded-lg transition duration-200 ${
-                          formData.isPrivate
-                            ? "bg-amber-600 text-white"
-                            : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                        }`}
-                      >
-                        Private
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-4 mt-6">
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleEditProfile}
-                    className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition duration-200"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            </div>
+            <EditProfile
+              profileUser={profileUser}
+              formData={formData}
+              setFormData={setFormData}
+              setIsEditing={setIsEditing}
+              API_BASE_URL={API_BASE_URL}
+              handleEditProfile={handleEditProfile}
+            />
           )}
 
           {/* Search Modal (Own Profile Only) */}
