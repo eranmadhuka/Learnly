@@ -121,6 +121,7 @@ const Feed = () => {
     }
   };
 
+  //like unlike post
   const toggleLike = async (postId) => {
     try {
       await axios.post(
@@ -200,6 +201,7 @@ const Feed = () => {
               {post.comments.length > 0 && (
                 <div className="mt-4 border-t pt-4">
                   <h3 className="text-lg font-semibold mb-2">Comments:</h3>
+
                   {post.comments.map((comment) => {
                     const isCommentOwner = comment.userId === currentUserId;
                     const isPostOwner = post.user.id === currentUserId;
@@ -210,7 +212,7 @@ const Feed = () => {
                       post.user,
                       "Current UserId:",
                       currentUserId
-                    );
+                    ); // Check if the comment belongs to the current user or the post owner(update this leter)
 
                     return (
                       <div
