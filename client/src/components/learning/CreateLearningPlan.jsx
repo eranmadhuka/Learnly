@@ -111,7 +111,7 @@ const CreateLearningPlan = () => {
     try {
       await addLearningPlan(newPlan);
 
-      // Reset form after successful submission
+      // Reset after successful submission
       setNewPlan({ title: "", description: "", topics: [], isPublic: false });
       setCurrentTopic({
         title: "",
