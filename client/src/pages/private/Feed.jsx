@@ -7,8 +7,10 @@ const Feed = () => {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedContent, setEditedContent] = useState("");
   const [newComment, setNewComment] = useState({}); // postId -> new comment text
-
   const [currentUserId, setCurrentUserId] = useState("");
+  const [currentProviderId, setCurrentProviderId] = useState("");
+  const [replyingToCommentId, setReplyingToCommentId] = useState(null);
+  const [replyContent, setReplyContent] = useState("");
 
   useEffect(() => {
     fetchCurrentUser();
@@ -20,7 +22,8 @@ const Feed = () => {
       const res = await axios.get("http://localhost:8081/api/users/me", {
         withCredentials: true,
       });
-      setCurrentUserId(res.data.id); // or ._id depending on your backend
+      setCurrentUserId(res.data.id); // Mongo _id for post owner match
+      setCurrentProviderId(res.data.providerId); // For comment owner match
     } catch (err) {
       console.error(err);
     }
@@ -138,6 +141,25 @@ const Feed = () => {
     }
   };
 
+  const handleAddReply = async (postId, parentCommentId) => {
+    try {
+      await axios.post(
+        `http://localhost:8081/api/comments`,
+        {
+          postId,
+          content: replyContent,
+          parentCommentId, // 👈 optional, for nested replies
+        },
+        { withCredentials: true }
+      );
+      setReplyingToCommentId(null);
+      setReplyContent("");
+      fetchPosts(); // refresh the list
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto p-6">
@@ -201,70 +223,238 @@ const Feed = () => {
               {post.comments.length > 0 && (
                 <div className="mt-4 border-t pt-4">
                   <h3 className="text-lg font-semibold mb-2">Comments:</h3>
-
-                  {post.comments.map((comment) => {
-                    const isCommentOwner = comment.userId === currentUserId;
-                    const isPostOwner = post.user.id === currentUserId;
-                    console.log(
-                      "Comment UserId:",
-                      comment.userId,
-                      "Post OwnerId:",
-                      post.user,
-                      "Current UserId:",
-                      currentUserId
-                    ); // Check if the comment belongs to the current user or the post owner(update this leter)
-
-                    return (
-                      <div
-                        key={comment.id}
-                        className="mb-3 p-3 rounded-lg bg-gray-100 flex flex-col"
-                      >
-                        {editingCommentId === comment.id ? (
-                          <>
-                            <textarea
-                              value={editedContent}
-                              onChange={(e) => setEditedContent(e.target.value)}
-                              className="w-full p-2 rounded-md border focus:outline-none focus:ring"
-                            />
-                            <div className="flex gap-2 mt-2">
-                              <button
-                                onClick={() => saveEditedComment(comment.id)}
-                                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={cancelEditing}
-                                className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-gray-900 dark:text-gray-900">
-                              {comment.content}
-                            </p>
-                            <div className="flex gap-3 mt-2">
-                              <button
-                                onClick={() => startEditing(comment)}
-                                className="text-blue-600 text-xs hover:underline"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => deleteComment(comment.id)}
-                                className="text-red-600 text-xs hover:underline"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                  {(() => {
+                    const parentComments = post.comments.filter(
+                      (c) => !c.parentCommentId
                     );
-                  })}
+                    const replies = post.comments.filter(
+                      (c) => c.parentCommentId
+                    );
+                    return parentComments.map((comment) => {
+                      const isCommentOwner =
+                        comment.userId === currentProviderId;
+                      const isPostOwner = post.user.id === currentUserId;
+                      const childReplies = replies.filter(
+                        (r) => r.parentCommentId === comment.id
+                      );
+
+                      return (
+                        <div
+                          key={comment.id}
+                          className="mb-3 p-3 rounded-lg bg-gray-100"
+                        >
+                          {editingCommentId === comment.id ? (
+                            <>
+                              <textarea
+                                value={editedContent}
+                                onChange={(e) =>
+                                  setEditedContent(e.target.value)
+                                }
+                                className="w-full p-2 rounded-md border focus:outline-none focus:ring"
+                              />
+                              <div className="flex gap-2 mt-2 justify-end">
+                                <button
+                                  onClick={() => saveEditedComment(comment.id)}
+                                  className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex gap-3 items-start">
+                                {comment.userPicture && (
+                                  <img
+                                    src={comment.userPicture}
+                                    alt="avatar"
+                                    className="w-8 h-8 rounded-full object-cover"
+                                  />
+                                )}
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-800">
+                                    {comment.userDisplayName || "User"}
+                                  </p>
+                                  <p className="text-gray-900">
+                                    {comment.content}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex justify-end gap-3 mt-2">
+                                <button
+                                  onClick={() => {
+                                    setReplyingToCommentId(comment.id);
+                                    setReplyContent("");
+                                  }}
+                                  className="text-green-600 text-xs hover:underline"
+                                >
+                                  Reply
+                                </button>
+                                {isCommentOwner && (
+                                  <button
+                                    onClick={() => startEditing(comment)}
+                                    className="text-blue-600 text-xs hover:underline"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                                {(isCommentOwner || isPostOwner) && (
+                                  <button
+                                    onClick={() => deleteComment(comment.id)}
+                                    className="text-red-600 text-xs hover:underline"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+
+                              {replyingToCommentId === comment.id && (
+                                <div className="mt-2">
+                                  <textarea
+                                    value={replyContent}
+                                    onChange={(e) =>
+                                      setReplyContent(e.target.value)
+                                    }
+                                    placeholder="Write a reply..."
+                                    className="w-full p-2 border rounded-md resize-none focus:outline-none focus:ring"
+                                    rows={2}
+                                  />
+                                  <div className="flex justify-end gap-2 mt-2">
+                                    <button
+                                      onClick={() =>
+                                        handleAddReply(post.id, comment.id)
+                                      }
+                                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                                    >
+                                      Post Reply
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setReplyingToCommentId(null);
+                                        setReplyContent("");
+                                      }}
+                                      className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 text-sm"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Render replies */}
+                              {childReplies.length > 0 && (
+                                <div className="mt-3 ml-6 space-y-2">
+                                  {childReplies.map((reply) => {
+                                    const isReplyOwner =
+                                      reply.userId === currentProviderId;
+                                    return (
+                                      <div
+                                        key={reply.id}
+                                        className="bg-gray-50 p-2 rounded-md text-sm border"
+                                      >
+                                        <div className="flex gap-3 items-start">
+                                          {reply.userPicture && (
+                                            <img
+                                              src={reply.userPicture}
+                                              alt="avatar"
+                                              className="w-7 h-7 rounded-full object-cover"
+                                            />
+                                          )}
+                                          <div>
+                                            <p className="text-sm font-semibold text-gray-800">
+                                              {reply.userDisplayName || "User"}
+                                            </p>
+                                            <p className="text-gray-800">
+                                              {reply.content}
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex justify-end gap-3 mt-1">
+                                          <button
+                                            onClick={() => {
+                                              setReplyingToCommentId(reply.id);
+                                              setReplyContent("");
+                                            }}
+                                            className="text-green-600 text-xs hover:underline"
+                                          >
+                                            Reply
+                                          </button>
+                                          {isReplyOwner && (
+                                            <button
+                                              onClick={() =>
+                                                startEditing(reply)
+                                              }
+                                              className="text-blue-600 text-xs hover:underline"
+                                            >
+                                              Edit
+                                            </button>
+                                          )}
+                                          {(isReplyOwner || isPostOwner) && (
+                                            <button
+                                              onClick={() =>
+                                                deleteComment(reply.id)
+                                              }
+                                              className="text-red-600 text-xs hover:underline"
+                                            >
+                                              Delete
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        {replyingToCommentId === reply.id && (
+                                          <div className="mt-2">
+                                            <textarea
+                                              value={replyContent}
+                                              onChange={(e) =>
+                                                setReplyContent(e.target.value)
+                                              }
+                                              placeholder="Write a reply..."
+                                              className="w-full p-2 border rounded-md resize-none focus:outline-none focus:ring"
+                                              rows={2}
+                                            />
+                                            <div className="flex justify-end gap-2 mt-2">
+                                              <button
+                                                onClick={() =>
+                                                  handleAddReply(
+                                                    post.id,
+                                                    reply.id
+                                                  )
+                                                }
+                                                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                                              >
+                                                Post Reply
+                                              </button>
+                                              <button
+                                                onClick={() => {
+                                                  setReplyingToCommentId(null);
+                                                  setReplyContent("");
+                                                }}
+                                                className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 text-sm"
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
 
