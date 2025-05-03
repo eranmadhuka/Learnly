@@ -25,7 +25,7 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
 
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8082";
   const isOwnProfile = !userId || (currentUser && userId === currentUser.id);
 
   useEffect(() => {
@@ -201,7 +201,7 @@ const Profile = () => {
   };
 
   const handleAddPost = () => {
-    navigate("/posts/new");
+    navigate("/add-blog-post");
   };
 
   const handleImageChange = (e) => {

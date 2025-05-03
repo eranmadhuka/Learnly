@@ -17,7 +17,7 @@ const Feed = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await axios.get("http://localhost:8081/api/users/me", {
+      const res = await axios.get("http://localhost:8082/api/users/me", {
         withCredentials: true,
       });
       setCurrentUserId(res.data.id); // or ._id depending on your backend
@@ -32,16 +32,16 @@ const Feed = () => {
 
   const fetchPosts = async () => {
     try {
-      const res = await axios.get("http://localhost:8081/api/posts/feed", {
+      const res = await axios.get("http://localhost:8082/api/posts/feed", {
         withCredentials: true,
       });
       const postsWithDetails = await Promise.all(
         res.data.map(async (post) => {
           const [commentsRes, likesRes] = await Promise.all([
-            axios.get(`http://localhost:8081/api/comments/post/${post.id}`, {
+            axios.get(`http://localhost:8082/api/comments/post/${post.id}`, {
               withCredentials: true,
             }),
-            axios.get(`http://localhost:8081/api/likes/post/${post.id}`, {
+            axios.get(`http://localhost:8082/api/likes/post/${post.id}`, {
               withCredentials: true,
             }),
           ]);
@@ -61,7 +61,7 @@ const Feed = () => {
 
   const deleteComment = async (commentId) => {
     try {
-      await axios.delete(`http://localhost:8081/api/comments/${commentId}`, {
+      await axios.delete(`http://localhost:8082/api/comments/${commentId}`, {
         withCredentials: true,
       });
       fetchPosts();
@@ -83,7 +83,7 @@ const Feed = () => {
   const saveEditedComment = async (commentId) => {
     try {
       await axios.put(
-        `http://localhost:8081/api/comments/${commentId}`,
+        `http://localhost:8082/api/comments/${commentId}`,
         editedContent,
         {
           headers: { "Content-Type": "text/plain" },
@@ -105,7 +105,7 @@ const Feed = () => {
   const addNewComment = async (postId) => {
     try {
       await axios.post(
-        `http://localhost:8081/api/comments`,
+        `http://localhost:8082/api/comments`,
         {
           postId,
           content: newComment[postId],
@@ -124,7 +124,7 @@ const Feed = () => {
   const toggleLike = async (postId) => {
     try {
       await axios.post(
-        `http://localhost:8081/api/likes`,
+        `http://localhost:8082/api/likes`,
         {
           postId,
           userId: "", // backend uses session user

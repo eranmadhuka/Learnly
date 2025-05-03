@@ -1,195 +1,129 @@
 import React, { useState } from "react";
-import DashboardLayout from "../layout/DashboardLayout";
-import { useBlog } from "../../context/BlogContext"; // Assuming you have BlogContext
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import DashboardLayout from "../../components/layout/DashboardLayout";
+import MediaUpload from "./MediaUpload";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../../firebase/firebase";
+import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
 
 const AddBlogPost = () => {
-  const { addBlogPost } = useBlog();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-
-  const [newPost, setNewPost] = useState({
-    title: "",
-    content: "",
-    mediaUrls: [],
-    fileTypes: [],
-    tags: [],
-  });
-
-  const [currentTag, setCurrentTag] = useState("");
-
-  const handleAddTag = () => {
-    if (!currentTag.trim()) return;
-    setNewPost((prev) => ({
-      ...prev,
-      tags: [...prev.tags, currentTag.trim()],
-    }));
-    setCurrentTag("");
-  };
-
-  const removeTag = (index) => {
-    setNewPost((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((_, i) => i !== index),
-    }));
-  };
+  const { user } = useAuth();
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newPost.title.trim()) {
-      setFormError("Please enter a blog title");
-      return;
-    }
-    if (!newPost.content.trim()) {
-      setFormError("Please enter blog content");
-      return;
+
+    if (!title || !content) {
+      return Swal.fire("Missing Fields", "Please fill in all required fields.", "error");
     }
 
-    setIsSubmitting(true);
-    setFormError("");
+    const imageFiles = mediaFiles.filter((file) => file.type.startsWith("image/"));
+    const videoFiles = mediaFiles.filter((file) => file.type.startsWith("video/"));
+
+    if (imageFiles.length > 3) {
+      return Swal.fire("Too Many Images", "You can upload up to 3 images.", "error");
+    }
+
+    if (videoFiles.length > 1) {
+      return Swal.fire("Too Many Videos", "You can upload only 1 video.", "error");
+    }
+
+    for (const file of videoFiles) {
+      if (file.size > 30 * 1024 * 1024) {
+        return Swal.fire("Video Too Large", "Video must be less than 30MB.", "error");
+      }
+    }
+
+    setLoading(true);
 
     try {
-      await addBlogPost(newPost);
+      const mediaUrls = [];
+      const fileTypes = [];
 
-      // Reset form after successful submission
-      setNewPost({
-        title: "",
-        content: "",
-        mediaUrls: [],
-        fileTypes: [],
-        tags: [],
+      for (const file of mediaFiles) {
+        const storageRef = ref(storage, `posts/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        mediaUrls.push(url);
+        fileTypes.push(file.type.startsWith("image/") ? "image" : "video");
+      }
+
+      const thumbnailUrl = mediaUrls.find((_, index) => fileTypes[index] === "image") || "";
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/posts`,
+        {
+          title,
+          content,
+          mediaUrls,
+          fileTypes,
+          thumbnailUrl,
+        },
+        { withCredentials: true }
+      );
+
+      setTitle("");
+      setContent("");
+      setMediaFiles([]);
+      Swal.fire("Success", "Blog post created successfully!", "success").then(() => {
+        navigate(`/profile/${user.id}`);
       });
-
-      setCurrentTag("");
-
-      // Show success message or redirect
     } catch (error) {
-      console.error(error);
-      setFormError("Failed to create blog post. Please try again.");
+      console.error("Post creation failed:", error);
+      Swal.fire("Error", "Something went wrong. Please try again.", "error");
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Blog Post</h1>
-        </div>
-
-        {formError && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-            <p className="text-red-700">{formError}</p>
+      <div className="container mx-auto px-4 py-8 max-w-4xl bg-white shadow-lg">
+        <h2 className="text-2xl font-bold mb-6">Create a New Blog Post</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Post Details Card */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">
-              Blog Post Details
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="title"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Blog Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  placeholder="Enter blog title"
-                  value={newPost.title}
-                  onChange={(e) =>
-                    setNewPost({ ...newPost, title: e.target.value })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="content"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Blog Content <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="content"
-                  placeholder="Write your blog content..."
-                  value={newPost.content}
-                  onChange={(e) =>
-                    setNewPost({ ...newPost, content: e.target.value })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 focus:outline-none"
-                  rows="6"
-                  required
-                />
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label
-                  htmlFor="tags"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Tags
-                </label>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Enter a tag"
-                    value={currentTag}
-                    onChange={(e) => setCurrentTag(e.target.value)}
-                    className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddTag}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    Add Tag
-                  </button>
-                </div>
-
-                {/* Tag List */}
-                {newPost.tags.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {newPost.tags.map((tag, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center bg-gray-200 rounded-full px-3 py-1 text-sm text-gray-800"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(index)}
-                          className="ml-2 text-gray-500 hover:text-red-500"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          <div>
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+              Content <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows="8"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
           </div>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`px-6 py-3 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors font-medium flex items-center justify-center min-w-32 ${
-                isSubmitting ? "opacity-70 cursor-not-allowed" : ""
-              }`}
-            >
-              {isSubmitting ? "Creating..." : "Create Blog Post"}
-            </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Media</label>
+            <MediaUpload onFilesSelected={setMediaFiles} />
           </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+          >
+            {loading ? "Posting..." : "Create Post"}
+          </button>
         </form>
       </div>
     </DashboardLayout>

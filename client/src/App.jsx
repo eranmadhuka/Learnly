@@ -13,6 +13,10 @@ import CreateLearningPlan from "./components/learning/CreateLearningPlan";
 import EditLearningPlan from "./components/learning/EditLearningPlan";
 import ProgressUpdateForm from "./components/learning/ProgressUpdateForm";
 import EditProgressUpdate from "./components/learning/EditProgressUpdate";
+import AddBlogPost from "./components/posts/AddBlogPost";
+
+
+
 
 function App() {
   return (
@@ -47,9 +51,14 @@ function App() {
             <Route
               path="/edit-progress-update/:progressId"
               element={<EditProgressUpdate />}
-            />
+            />`  `
 
             <Route path="/feed" element={<Feed />} />
+          
+              {/* Blog Routes */}
+           <Route path="/add-blog-post" element={<AddBlogPost />} />
+
+
           </Route>
         </Routes>
       </div>

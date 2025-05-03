@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import {} from "../../context/AuthContext";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import MediaUpload from "./MediaUpload";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -205,6 +206,7 @@ const EditPost = () => {
   }
 
   return (
+    <DashboardLayout>
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-bold mb-6">Edit Blog Post</h2>
 
@@ -294,6 +296,7 @@ const EditPost = () => {
         </button>
       </form>
     </div>
+  </DashboardLayout>
   );
 };
 
