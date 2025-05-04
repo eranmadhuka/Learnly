@@ -10,12 +10,14 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.messaging.access.intercept.MessageMatcherDelegatingAuthorizationManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.messaging.simp.SimpMessageType;
 
 import java.util.List;
 
@@ -34,14 +36,16 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/group-chat/**") // Disable CSRF for WebSocket
+                )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .sessionFixation().migrateSession() // Protect against session fixation
+                        .sessionFixation().migrateSession()
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/error", "/api/auth/user").permitAll()
-                        .requestMatchers("/user/profile", "/logout").authenticated()
+                        .requestMatchers("/login", "/error", "/api/auth/user", "/group-chat/**").permitAll()
+                        .requestMatchers("/user/profile", "/logout", "/api/groups/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -78,6 +82,14 @@ public class SecurityConfig {
     }
 
     @Bean
+    public MessageMatcherDelegatingAuthorizationManager.Builder messageAuthorization() {
+        return MessageMatcherDelegatingAuthorizationManager.builder()
+                .simpTypeMatchers(SimpMessageType.CONNECT, SimpMessageType.HEARTBEAT, SimpMessageType.DISCONNECT).permitAll()
+                .simpDestMatchers("/app/**").authenticated()
+                .anyMessage().denyAll();
+    }
+
+    @Bean
     public LogoutHandler logoutHandler() {
         return new SecurityContextLogoutHandler();
     }
@@ -95,7 +107,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-
-
 }

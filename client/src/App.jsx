@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 import Home from "./pages/public/Home";
 import Login from "./pages/public/Login";
 import Profile from "./pages/private/Profile";
@@ -13,8 +14,20 @@ import CreateLearningPlan from "./components/learning/CreateLearningPlan";
 import EditLearningPlan from "./components/learning/EditLearningPlan";
 import ProgressUpdateForm from "./components/learning/ProgressUpdateForm";
 import EditProgressUpdate from "./components/learning/EditProgressUpdate";
+import CommunitiesPage from "./pages/private/CommunitiesPage";
 
 function App() {
+  const { user, loading } = useAuth();
+  const userId = user?.id || null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
@@ -28,9 +41,8 @@ function App() {
             {/* User Profile Routes */}
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<Profile />} />
-            {/* <Route path="/profile/:id" element={<Profile />} /> */}
 
-            {/* Learning plans Routes */}
+            {/* Learning Plans Routes */}
             <Route path="/learning-plans" element={<LearningPlans />} />
             <Route
               path="/create-learning-plan"
@@ -49,7 +61,14 @@ function App() {
               element={<EditProgressUpdate />}
             />
 
+            {/* Feed Route */}
             <Route path="/feed" element={<Feed />} />
+
+            {/* Communities Route */}
+            <Route
+              path="/communities"
+              element={<CommunitiesPage userId={userId} />}
+            />
           </Route>
         </Routes>
       </div>

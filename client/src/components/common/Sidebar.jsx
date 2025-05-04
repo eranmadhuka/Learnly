@@ -162,6 +162,17 @@ const Sidebar = () => {
           </li>
           <li>
             <Link
+              to="/communities"
+              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive(
+                "/learning-plans"
+              )}`}
+            >
+              <BookOpenCheck size={20} />
+              <span>Communities</span>
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/saved-posts"
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive(
                 "/saved-posts"
