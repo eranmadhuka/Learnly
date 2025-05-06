@@ -1,4 +1,4 @@
-package com.app.learnly.repositories;
+package com.app.learnly.repository;
 
 import com.app.learnly.models.LearningPlan;
 import org.springframework.data.mongodb.repository.MongoRepository;

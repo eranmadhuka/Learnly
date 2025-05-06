@@ -21,8 +21,20 @@ public class User {
     private List<String> following = new ArrayList<>();
     private List<String> savedPosts = new ArrayList<>();
 
-    // Constructors
+    // Default constructor
     public User() {
+    }
+
+    // Constructor for OAuth2 user creation
+    public User(String email, String name, String picture, String provider, String providerId) {
+        this.email = email;
+        this.name = name;
+        this.picture = picture;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.followers = new ArrayList<>();
+        this.following = new ArrayList<>();
+        this.savedPosts = new ArrayList<>();
     }
 
     public String getId() {

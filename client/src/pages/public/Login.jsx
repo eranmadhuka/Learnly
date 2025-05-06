@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Chrome, Github, Twitter } from "lucide-react";
 
 export default function Login() {
-  const { user, login, loading } = useAuth(); // Added login from context
+  const { user, login, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

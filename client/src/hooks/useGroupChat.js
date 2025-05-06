@@ -9,8 +9,12 @@ const useGroupChat = (userId, groupId) => {
     const [client, setClient] = useState(null);
 
     useEffect(() => {
-        if (!groupId || !userId) return;
+        if (!groupId || !userId) {
+            setMessages([]);
+            return;
+        }
 
+        console.log('Attempting WebSocket connection for group:', groupId);
         // Fetch initial messages
         const fetchMessages = async () => {
             try {
@@ -26,7 +30,13 @@ const useGroupChat = (userId, groupId) => {
         const socket = new SockJS('http://localhost:8081/group-chat', null, { withCredentials: true });
         const stompClient = new Client({
             webSocketFactory: () => socket,
+            reconnectDelay: 5000,
             onConnect: () => {
+                console.log('Connected to WebSocket');
+
+                // Set the client after it's connected
+                setClient(stompClient);
+
                 stompClient.subscribe(`/topic/group/${groupId}`, (message) => {
                     try {
                         const newMessage = JSON.parse(message.body);
@@ -46,6 +56,7 @@ const useGroupChat = (userId, groupId) => {
             },
         });
 
+
         stompClient.activate();
         setClient(stompClient);
 
@@ -55,20 +66,23 @@ const useGroupChat = (userId, groupId) => {
             }
         };
     }, [groupId, userId]);
-
     const sendMessage = (message) => {
+        console.log('Client state:', { connected: client?.connected, clientExists: !!client });
         if (client && client.connected) {
             try {
+                console.log('Attempting to send message:', message);
                 client.publish({
                     destination: '/app/group/sendMessage',
                     body: JSON.stringify(message),
                 });
+                console.log('Message sent successfully');
             } catch (error) {
                 console.error('Failed to send message:', error);
                 toast.error('Failed to send message', { position: 'top-right' });
             }
         } else {
-            toast.error('Not connected to WebSocket', { position: 'top-right' });
+            console.error('Cannot send message: WebSocket not connected');
+            toast.error('Not connected to WebSocket. Please try again.', { position: 'top-right' });
         }
     };
 

@@ -52,7 +52,11 @@ const GroupChat = ({ userId }) => {
             </div>
             <div className="flex-1 p-4 overflow-y-auto">
               {messages.map((msg) => (
-                <MessageBubble key={msg._id} message={msg} userId={userId} />
+                <MessageBubble
+                  key={msg._id || `${msg.timestamp}-${msg.senderId}`}
+                  message={msg}
+                  userId={userId}
+                />
               ))}
             </div>
             <div className="p-4 bg-white border-t border-gray-200">

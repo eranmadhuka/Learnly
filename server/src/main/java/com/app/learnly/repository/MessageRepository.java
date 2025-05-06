@@ -1,7 +1,8 @@
-package com.app.learnly.repositories;
+package com.app.learnly.repository;
 
+import com.app.learnly.models.Message;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.messaging.Message;
+
 
 import java.util.List;
 

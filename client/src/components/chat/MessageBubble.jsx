@@ -1,13 +1,16 @@
+import DOMPurify from "dompurify";
+
 const MessageBubble = ({ message, userId }) => {
   const isOwnMessage = message.senderId === userId;
 
   const renderContent = (content) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return content.replace(
+    const formattedContent = content.replace(
       urlRegex,
       (url) =>
-        `<a href="${url}" target="_blank" class="text-indigo-600 underline">${url}</a>`
+        `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 underline">${url}</a>`
     );
+    return DOMPurify.sanitize(formattedContent);
   };
 
   return (

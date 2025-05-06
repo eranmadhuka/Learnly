@@ -12,6 +12,6 @@ export const getGroupMessages = (groupId) =>
     api.get(`/api/groups/${groupId}/messages`);
 
 export const createGroup = (group) =>
-    api.post('http://localhost:8081/api/groups', group);
+    api.post('/api/groups', group);
 
 export default api;

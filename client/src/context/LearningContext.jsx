@@ -7,9 +7,9 @@ const LearningContext = createContext();
 export const useLearning = () => useContext(LearningContext);
 
 export const LearningProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [learningPlans, setLearningPlans] = useState([]);
-  const [publicPlans, setPublicPlans] = useState([]); // New state for public plans
+  const [publicPlans, setPublicPlans] = useState([]);
   const [progressUpdates, setProgressUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +18,7 @@ export const LearningProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user || !user.id) {
+      if (!user || !user.id || !token) {
         setLoading(false);
         return;
       }
@@ -28,45 +28,56 @@ export const LearningProvider = ({ children }) => {
         const [userPlansResponse, publicPlansResponse, updatesResponse] =
           await Promise.all([
             axios.get(`${API_BASE_URL}/api/plans/user/${user.id}`, {
-              withCredentials: true,
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             }),
             axios.get(`${API_BASE_URL}/api/plans/public`, {
-              withCredentials: true,
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             }),
             axios.get(`${API_BASE_URL}/api/progress/user/${user.id}`, {
-              withCredentials: true,
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             }),
           ]);
 
         setLearningPlans(userPlansResponse.data);
         setPublicPlans(
           publicPlansResponse.data.filter((plan) => plan.userId !== user.id)
-        ); // Exclude user's own plans
+        );
         setProgressUpdates(updatesResponse.data);
       } catch (error) {
         console.error("Error fetching learning data:", error);
+        if (error.response?.status === 401) {
+          console.error("Unauthorized, please log in again.");
+          // Optionally trigger logout or token refresh here
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [user, API_BASE_URL]);
+  }, [user, token, API_BASE_URL]);
 
   const addLearningPlan = async (planData) => {
     if (!user || !user.id) throw new Error("User not authenticated");
     if (!planData.title) throw new Error("Plan title is required");
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/plans`,
-        planData, // No need to set userId; backend handles user
-        { withCredentials: true }
-      );
+      const response = await axios.post(`${API_BASE_URL}/api/plans`, planData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const newPlan = response.data;
       setLearningPlans((prev) => [...prev, newPlan]);
       return newPlan;
     } catch (error) {
+      console.error("Error adding learning plan:", error);
       throw new Error("Failed to create learning plan");
     }
   };
@@ -79,7 +90,11 @@ export const LearningProvider = ({ children }) => {
       const response = await axios.put(
         `${API_BASE_URL}/api/plans/${planId}`,
         { ...planData, userId: user.id },
-        { withCredentials: true }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       const updatedPlan = response.data;
       setLearningPlans((prev) =>
@@ -87,6 +102,7 @@ export const LearningProvider = ({ children }) => {
       );
       return updatedPlan;
     } catch (error) {
+      console.error("Error editing learning plan:", error);
       throw new Error("Failed to update learning plan");
     }
   };
@@ -98,12 +114,18 @@ export const LearningProvider = ({ children }) => {
       const response = await axios.post(
         `${API_BASE_URL}/api/plans/import/${planId}`,
         null,
-        { params: { userId: user.id }, withCredentials: true }
+        {
+          params: { userId: user.id },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       const importedPlan = response.data;
       setLearningPlans((prev) => [...prev, importedPlan]);
       return importedPlan;
     } catch (error) {
+      console.error("Error importing learning plan:", error);
       throw new Error("Failed to import learning plan");
     }
   };
@@ -114,11 +136,14 @@ export const LearningProvider = ({ children }) => {
 
     try {
       await axios.delete(`${API_BASE_URL}/api/plans/${planId}`, {
-        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setLearningPlans((prev) => prev.filter((plan) => plan.id !== planId));
       return true;
     } catch (error) {
+      console.error("Error removing learning plan:", error);
       throw new Error("Failed to delete learning plan");
     }
   };
@@ -132,12 +157,17 @@ export const LearningProvider = ({ children }) => {
       const response = await axios.post(
         `${API_BASE_URL}/api/progress`,
         { ...updateData, userId: user.id },
-        { withCredentials: true }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       const newUpdate = response.data;
       setProgressUpdates((prev) => [...prev, newUpdate]);
       return newUpdate;
     } catch (error) {
+      console.error("Error adding progress update:", error);
       throw new Error("Failed to create progress update");
     }
   };
@@ -150,7 +180,11 @@ export const LearningProvider = ({ children }) => {
       const response = await axios.put(
         `${API_BASE_URL}/api/progress/${updateId}`,
         { ...updateData, userId: user.id },
-        { withCredentials: true }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       const updatedUpdate = response.data;
       setProgressUpdates((prev) =>
@@ -158,6 +192,7 @@ export const LearningProvider = ({ children }) => {
       );
       return updatedUpdate;
     } catch (error) {
+      console.error("Error editing progress update:", error);
       throw new Error("Failed to update progress update");
     }
   };
@@ -168,25 +203,28 @@ export const LearningProvider = ({ children }) => {
 
     try {
       await axios.delete(`${API_BASE_URL}/api/progress/${updateId}`, {
-        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setProgressUpdates((prev) =>
         prev.filter((update) => update.id !== updateId)
       );
       return true;
     } catch (error) {
+      console.error("Error removing progress update:", error);
       throw new Error("Failed to delete progress update");
     }
   };
 
   const value = {
     learningPlans,
-    publicPlans, // Expose public plans
+    publicPlans,
     progressUpdates,
     loading,
     addLearningPlan,
     editLearningPlan,
-    importLearningPlan, // New method
+    importLearningPlan,
     removeLearningPlan,
     addProgressUpdate,
     editProgressUpdate,

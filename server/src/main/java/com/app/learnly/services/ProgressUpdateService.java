@@ -2,7 +2,7 @@
 package com.app.learnly.services;
 
 import com.app.learnly.models.ProgressUpdate;
-import com.app.learnly.repositories.ProgressUpdateRepository;
+import com.app.learnly.repository.ProgressUpdateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.Date;

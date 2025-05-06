@@ -1,5 +1,7 @@
 package com.app.learnly.config;
 
+import com.app.learnly.security.JwtAuthenticationFilter;
+import com.app.learnly.security.OAuth2AuthenticationSuccessHandler;
 import com.app.learnly.services.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.messaging.access.intercept.MessageMatcherDelegatingAuthorizationManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.cors.CorsConfiguration;
@@ -29,6 +32,12 @@ public class SecurityConfig {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+
     @Value("${frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
@@ -37,34 +46,22 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/group-chat/**") // Disable CSRF for WebSocket
-                )
+                        .ignoringRequestMatchers("/group-chat/**", "/api/groups/**")
+                        .disable()) // Disable CSRF for token-based auth
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .sessionFixation().migrateSession()
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless for JWT
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/error", "/api/auth/user", "/group-chat/**").permitAll()
-                        .requestMatchers("/user/profile", "/logout", "/api/groups/**").authenticated()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/login", "/error", "/api/auth/user", "/group-chat/**", "/oauth2/authorization/**").permitAll()
+                        .requestMatchers("/user/profile", "/api/users/**", "/api/groups/**", "/api/plans/**", "/api/progress/**").authenticated()                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(authService))
-                        .successHandler((request, response, authentication) -> {
-                            request.getSession().setAttribute("user", authentication.getPrincipal());
-                            String redirectUrl = (String) request.getSession().getAttribute("redirectAfterLogin");
-                            if (redirectUrl == null) {
-                                redirectUrl = frontendUrl + "/feed";
-                            }
-                            response.sendRedirect(redirectUrl);
-                        })
-                        .failureUrl("/login?error=true")
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureUrl(frontendUrl + "/login?error=true")
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .invalidateHttpSession(true)
                         .clearAuthentication(true)
-                        .deleteCookies("JSESSIONID")
                         .addLogoutHandler(logoutHandler())
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
@@ -76,7 +73,8 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                         })
-                );
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter
 
         return http.build();
     }
@@ -85,7 +83,7 @@ public class SecurityConfig {
     public MessageMatcherDelegatingAuthorizationManager.Builder messageAuthorization() {
         return MessageMatcherDelegatingAuthorizationManager.builder()
                 .simpTypeMatchers(SimpMessageType.CONNECT, SimpMessageType.HEARTBEAT, SimpMessageType.DISCONNECT).permitAll()
-                .simpDestMatchers("/app/**").authenticated()
+                .simpDestMatchers("/app/**", "/topic/**").authenticated()
                 .anyMessage().denyAll();
     }
 

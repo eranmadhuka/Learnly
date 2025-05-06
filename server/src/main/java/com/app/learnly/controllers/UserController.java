@@ -1,12 +1,13 @@
 package com.app.learnly.controllers;
 
 import com.app.learnly.models.User;
-import com.app.learnly.repositories.UserRepository;
 import com.app.learnly.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,21 +21,39 @@ import java.util.stream.Collectors;
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private UserService userService;
 
+    // Helper method to get the current user's email
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            // For JWT authentication, the principal is the email
+            if (authentication.getPrincipal() instanceof String) {
+                return (String) authentication.getPrincipal();
+            }
 
-    // Get current user
+            // For OAuth2 authentication, try to get from OAuth2User
+            if (authentication.getPrincipal() instanceof OAuth2User) {
+                OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+                return oauth2User.getAttribute("email");
+            }
+
+            // Fallback to getName() which should be the email in our setup
+            return authentication.getName();
+        }
+        return null;
+    }
+
+    // Get current user - works with both JWT and OAuth2
     @GetMapping("/me")
-    public ResponseEntity<User> getCurrentUser(@AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<User> getCurrentUser() {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        Optional<User> user = userRepository.findByProviderId(providerId);
+        Optional<User> user = userService.findByEmail(email);
         return user.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -42,7 +61,7 @@ public class UserController {
     // Get a specific user by ID
     @GetMapping("/{userId}")
     public ResponseEntity<User> getUserById(@PathVariable String userId) {
-        Optional<User> user = userRepository.findById(userId);
+        Optional<User> user = userService.findById(userId);
         return user.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -50,18 +69,16 @@ public class UserController {
     // Search users
     @GetMapping
     public ResponseEntity<List<User>> searchUsers(
-            @AuthenticationPrincipal OAuth2User principal,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String email
     ) {
-        String currentUserProviderId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+        String currentUserEmail = getCurrentUserEmail();
 
-        if (currentUserProviderId == null) {
+        if (currentUserEmail == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // Get all users except the current user
-        List<User> users = userRepository.findByProviderIdNot(currentUserProviderId);
+        List<User> users = userService.findAllExceptEmail(currentUserEmail);
 
         // Apply optional filtering by name and email
         if (name != null) {
@@ -69,214 +86,126 @@ public class UserController {
                     .filter(user -> user.getName().toLowerCase().contains(name.toLowerCase()))
                     .collect(Collectors.toList());
         }
-
         if (email != null) {
             users = users.stream()
                     .filter(user -> user.getEmail().toLowerCase().contains(email.toLowerCase()))
                     .collect(Collectors.toList());
         }
-
         return ResponseEntity.ok(users);
     }
 
     // Update user profile
     @PutMapping("/me")
-    public ResponseEntity<User> updateProfile(
-            @AuthenticationPrincipal OAuth2User principal,
-            @RequestBody Map<String, String> updates
-    ) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<User> updateProfile(@RequestBody Map<String, String> updates) {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        Optional<User> optionalUser = userRepository.findByProviderId(providerId);
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        User user = optionalUser.get();
-
-        // Update fields that are included in the request
+        User updatedUser = new User();
         if (updates.containsKey("name")) {
-            user.setName(updates.get("name"));
+            updatedUser.setName(updates.get("name"));
         }
         if (updates.containsKey("bio")) {
-            user.setBio(updates.get("bio"));
+            updatedUser.setBio(updates.get("bio"));
         }
         if (updates.containsKey("picture")) {
-            user.setPicture(updates.get("picture"));
+            updatedUser.setPicture(updates.get("picture"));
         }
-
-        User updatedUser = userRepository.save(user);
-        return ResponseEntity.ok(updatedUser);
+        User user = userService.updateUserProfile(email, updatedUser);
+        return ResponseEntity.ok(user);
     }
 
     // Delete user account
     @DeleteMapping("/me")
-    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<Void> deleteAccount() {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        Optional<User> optionalUser = userRepository.findByProviderId(providerId);
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        userRepository.delete(optionalUser.get());
+        userService.deleteUserByEmail(email);
         return ResponseEntity.noContent().build();
     }
 
     // Follow a user
     @PostMapping("/follow/{userId}")
-    public ResponseEntity<User> followUser(
-            @AuthenticationPrincipal OAuth2User principal,
-            @PathVariable String userId
-    ) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<User> followUser(@PathVariable String userId) {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        User currentUser = userRepository.findByProviderId(providerId)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
-
-        Optional<User> optionalTargetUser = userRepository.findById(userId);
-        if (optionalTargetUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        User targetUser = optionalTargetUser.get();
-
-        // Check if already following
-        if (!currentUser.getFollowing().contains(userId)) {
-            currentUser.getFollowing().add(userId);
-            userRepository.save(currentUser);
-
-            // Add current user to target user's followers
-            targetUser.getFollowers().add(currentUser.getId());
-            userRepository.save(targetUser);
-        }
-
+        User currentUser = userService.followUser(email, userId);
         return ResponseEntity.ok(currentUser);
     }
 
     // Unfollow a user
     @DeleteMapping("/unfollow/{userId}")
-    public ResponseEntity<User> unfollowUser(
-            @AuthenticationPrincipal OAuth2User principal,
-            @PathVariable String userId
-    ) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<User> unfollowUser(@PathVariable String userId) {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        User currentUser = userRepository.findByProviderId(providerId)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
-
-        Optional<User> optionalTargetUser = userRepository.findById(userId);
-        if (optionalTargetUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        User targetUser = optionalTargetUser.get();
-
-        // Remove from following list
-        currentUser.getFollowing().remove(userId);
-        userRepository.save(currentUser);
-
-        // Remove from target user's followers list
-        targetUser.getFollowers().remove(currentUser.getId());
-        userRepository.save(targetUser);
-
+        User currentUser = userService.unfollowUser(email, userId);
         return ResponseEntity.ok(currentUser);
     }
 
     // Get user's followers
     @GetMapping("/{userId}/followers")
     public ResponseEntity<List<User>> getUserFollowers(@PathVariable String userId) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        User user = optionalUser.get();
-        List<User> followers = userRepository.findAllById(user.getFollowers());
-
+        List<User> followers = userService.getUserFollowers(userId);
         return ResponseEntity.ok(followers);
     }
 
     // Get user's following
     @GetMapping("/{userId}/following")
     public ResponseEntity<List<User>> getUserFollowing(@PathVariable String userId) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        User user = optionalUser.get();
-        List<User> following = userRepository.findAllById(user.getFollowing());
-
+        List<User> following = userService.getUserFollowing(userId);
         return ResponseEntity.ok(following);
     }
 
     // Save a post
     @PostMapping("/saved-posts/{postId}")
-    public ResponseEntity<User> savePost(
-            @AuthenticationPrincipal OAuth2User principal,
-            @PathVariable String postId
-    ) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<User> savePost(@PathVariable String postId) {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        User currentUser = userRepository.findByProviderId(providerId)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
-
-        // Check if post is already saved
-        if (!currentUser.getSavedPosts().contains(postId)) {
-            currentUser.getSavedPosts().add(postId);
-            userRepository.save(currentUser);
-        }
-
+        User currentUser = userService.savePost(email, postId);
         return ResponseEntity.ok(currentUser);
     }
 
     // Unsave a post
     @DeleteMapping("/saved-posts/{postId}")
-    public ResponseEntity<User> unsavePost(
-            @AuthenticationPrincipal OAuth2User principal,
-            @PathVariable String postId
-    ) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<User> unsavePost(@PathVariable String postId) {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        User currentUser = userRepository.findByProviderId(providerId)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
-
-        currentUser.getSavedPosts().remove(postId);
-        userRepository.save(currentUser);
-
+        User currentUser = userService.unsavePost(email, postId);
         return ResponseEntity.ok(currentUser);
     }
 
     // Get user's saved posts
     @GetMapping("/me/saved-posts")
-    public ResponseEntity<List<String>> getSavedPosts(@AuthenticationPrincipal OAuth2User principal) {
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-        if (providerId == null) {
+    public ResponseEntity<List<String>> getSavedPosts() {
+        String email = getCurrentUserEmail();
+
+        if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        User currentUser = userRepository.findByProviderId(providerId)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
-
-        return ResponseEntity.ok(currentUser.getSavedPosts());
+        List<String> savedPosts = userService.getSavedPosts(email);
+        return ResponseEntity.ok(savedPosts);
     }
 }
