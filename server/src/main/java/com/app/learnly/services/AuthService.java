@@ -62,7 +62,7 @@ public class AuthService extends DefaultOAuth2UserService {
         // Return OAuth2User for security context
         String nameAttributeKey = userRequest.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
         return new DefaultOAuth2User(
-                Collections.singletonList(new org.springframework.security.oauth2.core.user.OAuth2UserAuthority(oAuth2User.getAttributes())),
+                Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")),
                 oAuth2User.getAttributes(),
                 nameAttributeKey
         );

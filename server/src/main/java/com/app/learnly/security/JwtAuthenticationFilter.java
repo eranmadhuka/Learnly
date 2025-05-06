@@ -22,6 +22,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -37,6 +39,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                // Log if no JWT is present but request is for a protected endpoint
+                if (SecurityContextHolder.getContext().getAuthentication() == null &&
+                        !request.getRequestURI().startsWith("/api/auth") &&
+                        !request.getRequestURI().startsWith("/api/plans/public")) {
+                    logger.debug("No JWT token provided for request: {}", request.getRequestURI());
+                }
             }
         } catch (Exception ex) {
             logger.error("Could not set user authentication in security context", ex);

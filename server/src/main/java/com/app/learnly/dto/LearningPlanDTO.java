@@ -41,6 +41,23 @@ public class LearningPlanDTO {
         return dto;
     }
 
+    public LearningPlan toEntity() {
+        LearningPlan plan = new LearningPlan();
+        plan.setId(this.id);
+        plan.setUser(this.user != null ? this.user.toEntity() : null);
+        plan.setTitle(this.title);
+        plan.setDescription(this.description);
+        plan.setTopics(this.topics != null
+                ? this.topics.stream().map(TopicDTO::toEntity).collect(Collectors.toList())
+                : new ArrayList<>());
+        plan.setCreatedAt(this.createdAt);
+        plan.setUpdatedAt(this.updatedAt);
+        plan.setCompletionDate(this.completionDate);
+        plan.setFollowers(this.followers != null ? new ArrayList<>(this.followers) : new ArrayList<>());
+        plan.setIsPublic(this.isPublic);
+        return plan;
+    }
+
     public String getId() {
         return id;
     }
@@ -142,6 +159,17 @@ public class LearningPlanDTO {
             return dto;
         }
 
+        public LearningPlan.Topic toEntity() {
+            LearningPlan.Topic topic = new LearningPlan.Topic();
+            topic.setTitle(this.title);
+            topic.setDescription(this.description);
+            topic.setResources(this.resources != null
+                    ? this.resources.stream().map(ResourceDTO::toEntity).collect(Collectors.toList())
+                    : new ArrayList<>());
+            topic.setCompleted(this.completed);
+            return topic;
+        }
+
         public String getTitle() {
             return title;
         }
@@ -186,6 +214,14 @@ public class LearningPlanDTO {
             dto.setUrl(resource.getUrl());
             dto.setType(resource.getType());
             return dto;
+        }
+
+        public LearningPlan.Resource toEntity() {
+            LearningPlan.Resource resource = new LearningPlan.Resource();
+            resource.setTitle(this.title);
+            resource.setUrl(this.url);
+            resource.setType(this.type);
+            return resource;
         }
 
         public String getTitle() {

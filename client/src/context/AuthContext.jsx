@@ -18,7 +18,7 @@ const AuthProvider = ({ children }) => {
   useEffect(() => {
     const interceptor = axios.interceptors.request.use(
       (config) => {
-        if (token) {
+        if (token && !config.url.includes("/api/plans/public")) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -27,30 +27,34 @@ const AuthProvider = ({ children }) => {
     );
 
     return () => {
-      // Clean up interceptor on unmount
       axios.interceptors.request.eject(interceptor);
     };
   }, [token]);
 
   // Check authentication status
   const checkAuth = async () => {
-    setLoading(true);
-    try {
-      if (!token) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
+    try {
       console.log("Checking authentication with token");
-      const response = await axios.get(`${API_BASE_URL}/api/users/me`);
+      const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       console.log("Auth response:", response.data);
       setUser(response.data);
     } catch (err) {
       console.error("Auth check failed:", err.response?.data || err.message);
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem("jwtToken");
+      if (err.response?.status === 401) {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem("jwtToken");
+      }
     } finally {
       setLoading(false);
     }
@@ -58,7 +62,6 @@ const AuthProvider = ({ children }) => {
 
   // Handle OAuth redirect with JWT token
   useEffect(() => {
-    // Check for token in URL (OAuth redirect)
     const query = new URLSearchParams(location.search);
     const jwtToken = query.get("token");
 
@@ -66,35 +69,31 @@ const AuthProvider = ({ children }) => {
       console.log("Token found in URL, setting token");
       setToken(jwtToken);
       localStorage.setItem("jwtToken", jwtToken);
-
-      // Remove token from URL to prevent bookmarking issues
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-
-      // Redirect to feed after successful login
+      window.history.replaceState({}, document.title, window.location.pathname);
       navigate("/feed", { replace: true });
-    } else if (token) {
-      // If we already have a token in state/localStorage but no user yet
+    }
+
+    if (token && !user) {
       checkAuth();
-    } else {
-      // No token, we're not authenticated
+    } else if (!token) {
       setLoading(false);
     }
-  }, [location.search, token]);
+  }, [location.search, token, navigate]);
 
   const login = () => {
-    // Redirect to OAuth login endpoint
     window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
   };
 
   const logout = async () => {
     try {
-      // Call backend logout endpoint if needed
-      await axios.post(`${API_BASE_URL}/logout`);
+      await axios.post(`${API_BASE_URL}/logout`, null, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      // Clean up local state regardless of server response
       setUser(null);
       setToken(null);
       localStorage.removeItem("jwtToken");

@@ -5,6 +5,8 @@ import com.app.learnly.repository.UserRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -20,6 +22,8 @@ import java.util.Optional;
 @Component
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    private static final Logger logger = LoggerFactory.getLogger(OAuth2AuthenticationSuccessHandler.class);
+
     @Value("${app.oauth2.redirectUri}")
     private String redirectUri;
 
@@ -34,6 +38,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             throws IOException, ServletException {
 
         if (response.isCommitted()) {
+            logger.warn("Response already committed, cannot redirect");
             return;
         }
 
@@ -41,6 +46,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String email = oAuth2User.getAttribute("email");
 
         if (email == null) {
+            logger.error("Email not found from OAuth2 provider");
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Email not found from OAuth2 provider");
             return;
         }
@@ -51,7 +57,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         if (userOptional.isPresent()) {
             user = userOptional.get();
         } else {
-            // This shouldn't happen since the user is created in AuthService, but just in case
             String name = oAuth2User.getAttribute("name");
             String picture = oAuth2User.getAttribute("picture");
             String providerId = oAuth2User.getAttribute("sub");
@@ -82,6 +87,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .queryParam("token", token)
                 .build().toUriString();
 
+        logger.info("Redirecting user {} to {}", email, targetUrl);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

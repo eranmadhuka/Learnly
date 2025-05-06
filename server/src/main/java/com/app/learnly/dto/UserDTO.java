@@ -17,6 +17,15 @@ public class UserDTO {
         return dto;
     }
 
+    public User toEntity() {
+        User user = new User();
+        user.setId(this.id);
+        user.setName(this.name);
+        user.setEmail(this.email);
+        user.setPicture(this.picture);
+        return user;
+    }
+
     public String getId() {
         return id;
     }
