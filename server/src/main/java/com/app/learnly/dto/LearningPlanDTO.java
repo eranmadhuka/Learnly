@@ -1,6 +1,7 @@
 package com.app.learnly.dto;
 
-import com.app.learnly.models.LearningPlan;
+import com.app.learnly.model.LearningPlan;
+import com.app.learnly.model.User;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -8,8 +9,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class LearningPlanDTO {
+
     private String id;
-    private UserDTO user;
+    private String userId;
+    private String userEmail;
     private String title;
     private String description;
     private List<TopicDTO> topics;
@@ -24,40 +27,195 @@ public class LearningPlanDTO {
         this.followers = new ArrayList<>();
     }
 
-    public static LearningPlanDTO fromEntity(LearningPlan plan) {
+    // Conversion methods
+    public static LearningPlanDTO fromEntity(LearningPlan entity) {
+        if (entity == null) {
+            return null;
+        }
+
         LearningPlanDTO dto = new LearningPlanDTO();
-        dto.setId(plan.getId());
-        dto.setUser(UserDTO.fromEntity(plan.getUser()));
-        dto.setTitle(plan.getTitle());
-        dto.setDescription(plan.getDescription());
-        dto.setTopics(plan.getTopics().stream()
-                .map(TopicDTO::fromEntity)
-                .collect(Collectors.toList()));
-        dto.setCreatedAt(plan.getCreatedAt());
-        dto.setUpdatedAt(plan.getUpdatedAt());
-        dto.setCompletionDate(plan.getCompletionDate());
-        dto.setFollowers(plan.getFollowers());
-        dto.setIsPublic(plan.isPublic());
+        dto.setId(entity.getId());
+
+        if (entity.getUser() != null) {
+            dto.setUserId(entity.getUser().getId());
+            dto.setUserEmail(entity.getUser().getEmail());
+        }
+
+        dto.setTitle(entity.getTitle());
+        dto.setDescription(entity.getDescription());
+
+        if (entity.getTopics() != null) {
+            dto.setTopics(entity.getTopics().stream()
+                    .map(TopicDTO::fromEntity)
+                    .collect(Collectors.toList()));
+        }
+
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+        dto.setCompletionDate(entity.getCompletionDate());
+        dto.setFollowers(entity.getFollowers());
+        dto.setPublic(entity.isPublic());
+
         return dto;
     }
 
     public LearningPlan toEntity() {
-        LearningPlan plan = new LearningPlan();
-        plan.setId(this.id);
-        plan.setUser(this.user != null ? this.user.toEntity() : null);
-        plan.setTitle(this.title);
-        plan.setDescription(this.description);
-        plan.setTopics(this.topics != null
-                ? this.topics.stream().map(TopicDTO::toEntity).collect(Collectors.toList())
-                : new ArrayList<>());
-        plan.setCreatedAt(this.createdAt);
-        plan.setUpdatedAt(this.updatedAt);
-        plan.setCompletionDate(this.completionDate);
-        plan.setFollowers(this.followers != null ? new ArrayList<>(this.followers) : new ArrayList<>());
-        plan.setIsPublic(this.isPublic);
-        return plan;
+        LearningPlan entity = new LearningPlan();
+        entity.setId(this.id);
+        // User will be set by the controller
+        entity.setTitle(this.title);
+        entity.setDescription(this.description);
+
+        if (this.topics != null) {
+            entity.setTopics(this.topics.stream()
+                    .map(TopicDTO::toEntity)
+                    .collect(Collectors.toList()));
+        }
+
+        entity.setCreatedAt(this.createdAt);
+        entity.setUpdatedAt(this.updatedAt);
+        entity.setCompletionDate(this.completionDate);
+        entity.setFollowers(this.followers);
+        entity.setIsPublic(this.isPublic);
+
+        return entity;
     }
 
+    // Inner classes for Topic and Resource DTOs
+    public static class TopicDTO {
+        private String title;
+        private String description;
+        private List<ResourceDTO> resources;
+        private boolean completed;
+
+        public TopicDTO() {
+            this.resources = new ArrayList<>();
+        }
+
+        public static TopicDTO fromEntity(LearningPlan.Topic entity) {
+            if (entity == null) {
+                return null;
+            }
+
+            TopicDTO dto = new TopicDTO();
+            dto.setTitle(entity.getTitle());
+            dto.setDescription(entity.getDescription());
+
+            if (entity.getResources() != null) {
+                dto.setResources(entity.getResources().stream()
+                        .map(ResourceDTO::fromEntity)
+                        .collect(Collectors.toList()));
+            }
+
+            dto.setCompleted(entity.isCompleted());
+
+            return dto;
+        }
+
+        public LearningPlan.Topic toEntity() {
+            LearningPlan.Topic entity = new LearningPlan.Topic();
+            entity.setTitle(this.title);
+            entity.setDescription(this.description);
+
+            if (this.resources != null) {
+                entity.setResources(this.resources.stream()
+                        .map(ResourceDTO::toEntity)
+                        .collect(Collectors.toList()));
+            }
+
+            entity.setCompleted(this.completed);
+
+            return entity;
+        }
+
+        // Getters and setters
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public List<ResourceDTO> getResources() {
+            return resources;
+        }
+
+        public void setResources(List<ResourceDTO> resources) {
+            this.resources = resources;
+        }
+
+        public boolean isCompleted() {
+            return completed;
+        }
+
+        public void setCompleted(boolean completed) {
+            this.completed = completed;
+        }
+    }
+
+    public static class ResourceDTO {
+        private String title;
+        private String url;
+        private String type;
+
+        public static ResourceDTO fromEntity(LearningPlan.Resource entity) {
+            if (entity == null) {
+                return null;
+            }
+
+            ResourceDTO dto = new ResourceDTO();
+            dto.setTitle(entity.getTitle());
+            dto.setUrl(entity.getUrl());
+            dto.setType(entity.getType());
+
+            return dto;
+        }
+
+        public LearningPlan.Resource toEntity() {
+            LearningPlan.Resource entity = new LearningPlan.Resource();
+            entity.setTitle(this.title);
+            entity.setUrl(this.url);
+            entity.setType(this.type);
+
+            return entity;
+        }
+
+        // Getters and setters
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+    }
+
+    // Getters and setters for LearningPlanDTO
     public String getId() {
         return id;
     }
@@ -66,12 +224,20 @@ public class LearningPlanDTO {
         this.id = id;
     }
 
-    public UserDTO getUser() {
-        return user;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setUser(UserDTO user) {
-        this.user = user;
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 
     public String getTitle() {
@@ -134,118 +300,7 @@ public class LearningPlanDTO {
         return isPublic;
     }
 
-    public void setIsPublic(boolean isPublic) {
+    public void setPublic(boolean isPublic) {
         this.isPublic = isPublic;
-    }
-
-    public static class TopicDTO {
-        private String title;
-        private String description;
-        private List<ResourceDTO> resources;
-        private boolean completed;
-
-        public TopicDTO() {
-            this.resources = new ArrayList<>();
-        }
-
-        public static TopicDTO fromEntity(LearningPlan.Topic topic) {
-            TopicDTO dto = new TopicDTO();
-            dto.setTitle(topic.getTitle());
-            dto.setDescription(topic.getDescription());
-            dto.setResources(topic.getResources().stream()
-                    .map(ResourceDTO::fromEntity)
-                    .collect(Collectors.toList()));
-            dto.setCompleted(topic.isCompleted());
-            return dto;
-        }
-
-        public LearningPlan.Topic toEntity() {
-            LearningPlan.Topic topic = new LearningPlan.Topic();
-            topic.setTitle(this.title);
-            topic.setDescription(this.description);
-            topic.setResources(this.resources != null
-                    ? this.resources.stream().map(ResourceDTO::toEntity).collect(Collectors.toList())
-                    : new ArrayList<>());
-            topic.setCompleted(this.completed);
-            return topic;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public List<ResourceDTO> getResources() {
-            return resources;
-        }
-
-        public void setResources(List<ResourceDTO> resources) {
-            this.resources = resources;
-        }
-
-        public boolean isCompleted() {
-            return completed;
-        }
-
-        public void setCompleted(boolean completed) {
-            this.completed = completed;
-        }
-    }
-
-    public static class ResourceDTO {
-        private String title;
-        private String url;
-        private String type;
-
-        public static ResourceDTO fromEntity(LearningPlan.Resource resource) {
-            ResourceDTO dto = new ResourceDTO();
-            dto.setTitle(resource.getTitle());
-            dto.setUrl(resource.getUrl());
-            dto.setType(resource.getType());
-            return dto;
-        }
-
-        public LearningPlan.Resource toEntity() {
-            LearningPlan.Resource resource = new LearningPlan.Resource();
-            resource.setTitle(this.title);
-            resource.setUrl(this.url);
-            resource.setType(this.type);
-            return resource;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public String getUrl() {
-            return url;
-        }
-
-        public void setUrl(String url) {
-            this.url = url;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
     }
 }

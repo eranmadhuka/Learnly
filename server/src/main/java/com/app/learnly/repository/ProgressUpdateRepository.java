@@ -1,6 +1,6 @@
 package com.app.learnly.repository;
 
-import com.app.learnly.models.ProgressUpdate;
+import com.app.learnly.model.ProgressUpdate;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;

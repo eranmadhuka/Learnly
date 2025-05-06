@@ -1,7 +1,7 @@
 
-package com.app.learnly.services;
+package com.app.learnly.service;
 
-import com.app.learnly.models.ProgressUpdate;
+import com.app.learnly.model.ProgressUpdate;
 import com.app.learnly.repository.ProgressUpdateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

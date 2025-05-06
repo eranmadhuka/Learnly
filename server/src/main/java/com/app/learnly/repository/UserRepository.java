@@ -1,6 +1,6 @@
 package com.app.learnly.repository;
 
-import com.app.learnly.models.User;
+import com.app.learnly.model.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;

@@ -1,7 +1,7 @@
-package com.app.learnly.services;
+package com.app.learnly.service;
 
-import com.app.learnly.models.Group;
-import com.app.learnly.models.Message;
+import com.app.learnly.model.Group;
+import com.app.learnly.model.Message;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;

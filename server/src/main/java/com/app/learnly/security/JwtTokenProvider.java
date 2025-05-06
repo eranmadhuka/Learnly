@@ -3,10 +3,7 @@ package com.app.learnly.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,8 +15,6 @@ import java.util.Map;
 
 @Component
 public class JwtTokenProvider {
-
-    private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -40,44 +35,37 @@ public class JwtTokenProvider {
             claims.put("picture", pictureUrl);
         }
 
-        SecretKey key = getSigningKey();
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(email)
-                .setIssuedAt(now)
+                .setIssuedAt(new Date())
                 .setExpiration(expiryDate)
-                .signWith(key, SignatureAlgorithm.HS512)
+                .signWith(key)
                 .compact();
     }
 
     // Extract user email from JWT token
     public String getEmailFromJWT(String token) {
-        SecretKey key = getSigningKey();
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        Claims claims = Jwts.parser()
+                .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
+
         return claims.get("email", String.class);
     }
 
     // Validate the JWT token
     public boolean validateToken(String authToken) {
         try {
-            SecretKey key = getSigningKey();
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
+            Jwts.parser()
+                    .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
                     .build()
-                    .parseClaimsJws(authToken);
+                    .parseSignedClaims(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
             return false;
         }
-    }
-
-    // Helper method to get the signing key
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 }

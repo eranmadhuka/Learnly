@@ -1,8 +1,8 @@
 package com.app.learnly.controllers;
 
-import com.app.learnly.models.Group;
-import com.app.learnly.models.Message;
-import com.app.learnly.services.GroupChatService;
+import com.app.learnly.model.Group;
+import com.app.learnly.model.Message;
+import com.app.learnly.service.GroupChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

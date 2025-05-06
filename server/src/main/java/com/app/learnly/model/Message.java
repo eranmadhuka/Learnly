@@ -1,4 +1,4 @@
-package com.app.learnly.models;
+package com.app.learnly.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;

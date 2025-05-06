@@ -1,8 +1,8 @@
 // controllers/ProgressUpdateController.java
 package com.app.learnly.controllers;
 
-import com.app.learnly.models.ProgressUpdate;
-import com.app.learnly.services.ProgressUpdateService;
+import com.app.learnly.model.ProgressUpdate;
+import com.app.learnly.service.ProgressUpdateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

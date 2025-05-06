@@ -1,12 +1,9 @@
 package com.app.learnly.security;
 
-import com.app.learnly.models.User;
+import com.app.learnly.model.User;
 import com.app.learnly.repository.UserRepository;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -16,15 +13,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Optional;
+import java.util.Map;
 
 @Component
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(OAuth2AuthenticationSuccessHandler.class);
-
-    @Value("${app.oauth2.redirectUri}")
+    @Value("${app.oauth2.redirectUri:http://localhost:5173/oauth2/redirect}")
     private String redirectUri;
 
     @Autowired
@@ -35,59 +29,39 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
-            throws IOException, ServletException {
-
+            throws IOException {
         if (response.isCommitted()) {
-            logger.warn("Response already committed, cannot redirect");
             return;
         }
 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-        String email = oAuth2User.getAttribute("email");
+        Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        if (email == null) {
-            logger.error("Email not found from OAuth2 provider");
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Email not found from OAuth2 provider");
-            return;
-        }
+        String email = (String) attributes.get("email");
+        String name = (String) attributes.get("name");
+        String pictureUrl = (String) attributes.get("picture");
+        String provider = "google"; // This can be dynamic based on the provider
+        String providerId = (String) attributes.get("sub");
 
-        Optional<User> userOptional = userRepository.findByEmail(email);
-        User user;
+        // Find existing user or create a new one
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = new User(email, name, pictureUrl, provider, providerId);
+                    return userRepository.save(newUser);
+                });
 
-        if (userOptional.isPresent()) {
-            user = userOptional.get();
-        } else {
-            String name = oAuth2User.getAttribute("name");
-            String picture = oAuth2User.getAttribute("picture");
-            String providerId = oAuth2User.getAttribute("sub");
+        // Update user information
+        user.setName(name);
+        user.setPicture(pictureUrl);
+        userRepository.save(user);
 
-            user = new User();
-            user.setEmail(email);
-            user.setName(name);
-            user.setPicture(picture);
-            user.setProvider("google");
-            user.setProviderId(providerId);
-            user.setFollowers(new ArrayList<>());
-            user.setFollowing(new ArrayList<>());
-            user.setSavedPosts(new ArrayList<>());
+        // Generate JWT token
+        String token = tokenProvider.generateToken(user.getEmail(), user.getId(), user.getName(), user.getPicture());
 
-            user = userRepository.save(user);
-        }
-
-        // Generate JWT token with user details
-        String token = tokenProvider.generateToken(
-                user.getEmail(),
-                user.getId(),
-                user.getName(),
-                user.getPicture()
-        );
-
-        // Build redirect URL with token
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam("token", token)
                 .build().toUriString();
 
-        logger.info("Redirecting user {} to {}", email, targetUrl);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

@@ -1,6 +1,6 @@
-package com.app.learnly.services;
+package com.app.learnly.service;
 
-import com.app.learnly.models.User;
+import com.app.learnly.model.User;
 import com.app.learnly.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;

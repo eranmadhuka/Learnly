@@ -1,10 +1,10 @@
 package com.app.learnly.controllers;
 
 import com.app.learnly.dto.LearningPlanDTO;
-import com.app.learnly.models.LearningPlan;
-import com.app.learnly.models.User;
+import com.app.learnly.model.LearningPlan;
+import com.app.learnly.model.User;
 import com.app.learnly.repository.UserRepository;
-import com.app.learnly.services.LearningPlanService;
+import com.app.learnly.service.LearningPlanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,21 +33,16 @@ public class LearningPlanController {
     private UserRepository userRepository;
 
     @PostMapping
-    public ResponseEntity<LearningPlanDTO> createLearningPlan(
+    public ResponseEntity<?> createLearningPlan(
             @RequestBody LearningPlanDTO learningPlanDTO,
             @AuthenticationPrincipal OAuth2User principal) {
+
+        User user = validateUser(principal);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         try {
-            if (principal == null || principal.getAttribute("email") == null) {
-                logger.warn("Unauthorized access attempt: No authenticated user");
-                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-            }
-            String email = principal.getAttribute("email");
-            Optional<User> userOptional = userRepository.findByEmail(email);
-            if (!userOptional.isPresent()) {
-                logger.warn("User not found for email: {}", email);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            User user = userOptional.get();
             LearningPlan learningPlan = learningPlanDTO.toEntity();
             learningPlan.setUser(user);
             learningPlan.setCreatedAt(new Date());
@@ -58,78 +53,64 @@ public class LearningPlanController {
 
             LearningPlan createdPlan = learningPlanService.createLearningPlan(learningPlan);
             logger.info("Created learning plan with ID: {} for user: {}", createdPlan.getId(), user.getEmail());
-            return new ResponseEntity<>(LearningPlanDTO.fromEntity(createdPlan), HttpStatus.CREATED);
+            return ResponseEntity.status(HttpStatus.CREATED).body(LearningPlanDTO.fromEntity(createdPlan));
         } catch (Exception e) {
             logger.error("Error creating learning plan: {}", e.getMessage(), e);
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LearningPlanDTO> getLearningPlanById(
+    public ResponseEntity<?> getLearningPlanById(
             @PathVariable String id,
             @AuthenticationPrincipal OAuth2User principal) {
+
+        User user = validateUser(principal);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         try {
-            if (principal == null || principal.getAttribute("email") == null) {
-                logger.warn("Unauthorized access attempt: No authenticated user");
-                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-            }
-            String email = principal.getAttribute("email");
-            Optional<User> userOptional = userRepository.findByEmail(email);
-            if (!userOptional.isPresent()) {
-                logger.warn("User not found for email: {}", email);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            User user = userOptional.get();
             Optional<LearningPlan> planOptional = learningPlanService.getLearningPlanById(id);
             if (!planOptional.isPresent()) {
-                logger.warn("Learning plan not found: {}", id);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return ResponseEntity.notFound().build();
             }
 
             LearningPlan plan = planOptional.get();
             if (!plan.isPublic() && !plan.getUser().getId().equals(user.getId())) {
-                logger.warn("Access denied for plan: {} by user: {}", id, user.getEmail());
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
-            return new ResponseEntity<>(LearningPlanDTO.fromEntity(plan), HttpStatus.OK);
+            return ResponseEntity.ok(LearningPlanDTO.fromEntity(plan));
         } catch (Exception e) {
             logger.error("Error retrieving learning plan: {}", e.getMessage(), e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<LearningPlanDTO>> getLearningPlansByUserId(
+    public ResponseEntity<?> getLearningPlansByUserId(
             @PathVariable String userId,
             @AuthenticationPrincipal OAuth2User principal) {
-        try {
-            if (principal == null || principal.getAttribute("email") == null) {
-                logger.warn("Unauthorized access attempt: No authenticated user");
-                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-            }
-            String email = principal.getAttribute("email");
-            Optional<User> userOptional = userRepository.findByEmail(email);
-            if (!userOptional.isPresent()) {
-                logger.warn("User not found for email: {}", email);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            User user = userOptional.get();
-            if (!user.getId().equals(userId)) {
-                logger.warn("Access denied for user plans: {} by user: {}", userId, user.getEmail());
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-            }
 
+        User user = validateUser(principal);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (!user.getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
             List<LearningPlan> plans = learningPlanService.getLearningPlansByUserId(userId);
             List<LearningPlanDTO> planDTOs = plans.stream()
                     .map(LearningPlanDTO::fromEntity)
                     .collect(Collectors.toList());
-            logger.info("Retrieved {} learning plans for user: {}", planDTOs.size(), user.getEmail());
-            return new ResponseEntity<>(planDTOs, HttpStatus.OK);
+            return ResponseEntity.ok(planDTOs);
         } catch (Exception e) {
             logger.error("Error retrieving user plans: {}", e.getMessage(), e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -141,40 +122,32 @@ public class LearningPlanController {
                     .filter(LearningPlan::isPublic)
                     .map(LearningPlanDTO::fromEntity)
                     .collect(Collectors.toList());
-            logger.info("Retrieved {} public learning plans", publicPlanDTOs.size());
-            return new ResponseEntity<>(publicPlanDTOs, HttpStatus.OK);
+            return ResponseEntity.ok(publicPlanDTOs);
         } catch (Exception e) {
             logger.error("Error retrieving public plans: {}", e.getMessage(), e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping("/import/{planId}")
-    public ResponseEntity<LearningPlanDTO> importLearningPlan(
+    public ResponseEntity<?> importLearningPlan(
             @PathVariable String planId,
             @AuthenticationPrincipal OAuth2User principal) {
+
+        User user = validateUser(principal);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         try {
-            if (principal == null || principal.getAttribute("email") == null) {
-                logger.warn("Unauthorized access attempt: No authenticated user");
-                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-            }
-            String email = principal.getAttribute("email");
-            Optional<User> userOptional = userRepository.findByEmail(email);
-            if (!userOptional.isPresent()) {
-                logger.warn("User not found for email: {}", email);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            User user = userOptional.get();
             Optional<LearningPlan> originalPlanOptional = learningPlanService.getLearningPlanById(planId);
             if (!originalPlanOptional.isPresent()) {
-                logger.warn("Learning plan not found for import: {}", planId);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return ResponseEntity.notFound().build();
             }
 
             LearningPlan originalPlan = originalPlanOptional.get();
             if (!originalPlan.isPublic()) {
-                logger.warn("Import denied for non-public plan: {} by user: {}", planId, user.getEmail());
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
             LearningPlan importedPlan = new LearningPlan();
@@ -214,40 +187,33 @@ public class LearningPlanController {
             learningPlanService.updateLearningPlan(originalPlan.getId(), originalPlan);
 
             logger.info("Imported learning plan: {} for user: {}", savedPlan.getId(), user.getEmail());
-            return new ResponseEntity<>(LearningPlanDTO.fromEntity(savedPlan), HttpStatus.CREATED);
+            return ResponseEntity.status(HttpStatus.CREATED).body(LearningPlanDTO.fromEntity(savedPlan));
         } catch (Exception e) {
             logger.error("Error importing learning plan: {}", e.getMessage(), e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LearningPlanDTO> updateLearningPlan(
+    public ResponseEntity<?> updateLearningPlan(
             @PathVariable String id,
             @RequestBody LearningPlanDTO learningPlanDTO,
             @AuthenticationPrincipal OAuth2User principal) {
+
+        User user = validateUser(principal);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         try {
-            if (principal == null || principal.getAttribute("email") == null) {
-                logger.warn("Unauthorized access attempt: No authenticated user");
-                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-            }
-            String email = principal.getAttribute("email");
-            Optional<User> userOptional = userRepository.findByEmail(email);
-            if (!userOptional.isPresent()) {
-                logger.warn("User not found for email: {}", email);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            User user = userOptional.get();
             Optional<LearningPlan> existingPlanOptional = learningPlanService.getLearningPlanById(id);
             if (!existingPlanOptional.isPresent()) {
-                logger.warn("Learning plan not found for update: {}", id);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return ResponseEntity.notFound().build();
             }
 
             LearningPlan existingPlan = existingPlanOptional.get();
             if (!existingPlan.getUser().getId().equals(user.getId())) {
-                logger.warn("Update denied for plan: {} by user: {}", id, user.getEmail());
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
             LearningPlan learningPlan = learningPlanDTO.toEntity();
@@ -256,57 +222,68 @@ public class LearningPlanController {
             LearningPlan updatedPlan = learningPlanService.updateLearningPlan(id, learningPlan);
 
             if (updatedPlan != null) {
-                logger.info("Updated learning plan: {} for user: {}", id, user.getEmail());
-                return new ResponseEntity<>(LearningPlanDTO.fromEntity(updatedPlan), HttpStatus.OK);
+                return ResponseEntity.ok(LearningPlanDTO.fromEntity(updatedPlan));
             } else {
-                logger.warn("Failed to update learning plan: {}", id);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
             logger.error("Error updating learning plan: {}", e.getMessage(), e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteLearningPlan(
+    public ResponseEntity<?> deleteLearningPlan(
             @PathVariable String id,
             @AuthenticationPrincipal OAuth2User principal) {
+
+        User user = validateUser(principal);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         try {
-            if (principal == null || principal.getAttribute("email") == null) {
-                logger.warn("Unauthorized access attempt: No authenticated user");
-                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-            }
-            String email = principal.getAttribute("email");
-            Optional<User> userOptional = userRepository.findByEmail(email);
-            if (!userOptional.isPresent()) {
-                logger.warn("User not found for email: {}", email);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            User user = userOptional.get();
             Optional<LearningPlan> planOptional = learningPlanService.getLearningPlanById(id);
             if (!planOptional.isPresent()) {
-                logger.warn("Learning plan not found for deletion: {}", id);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return ResponseEntity.notFound().build();
             }
 
             LearningPlan plan = planOptional.get();
             if (!plan.getUser().getId().equals(user.getId())) {
-                logger.warn("Deletion denied for plan: {} by user: {}", id, user.getEmail());
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
             boolean deleted = learningPlanService.deleteLearningPlan(id);
             if (deleted) {
-                logger.info("Deleted learning plan: {} for user: {}", id, user.getEmail());
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+                return ResponseEntity.noContent().build();
             } else {
-                logger.warn("Failed to delete learning plan: {}", id);
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
             logger.error("Error deleting learning plan: {}", e.getMessage(), e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * Helper method to validate the user from OAuth2 principal
+     * @param principal OAuth2User principal
+     * @return User object if valid, null otherwise
+     */
+    private User validateUser(OAuth2User principal) {
+        if (principal == null || principal.getAttribute("email") == null) {
+            logger.warn("Unauthorized access attempt: No authenticated user");
+            return null;
+        }
+
+        String email = principal.getAttribute("email");
+        Optional<User> userOptional = userRepository.findByEmail(email);
+
+        if (!userOptional.isPresent()) {
+            logger.warn("User not found for email: {}", email);
+            return null;
+        }
+
+        return userOptional.get();
     }
 }

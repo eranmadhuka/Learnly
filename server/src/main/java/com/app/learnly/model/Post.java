@@ -1,31 +1,29 @@
-package com.app.learnly.dto;
+package com.app.learnly.model;
 
-import com.app.learnly.models.Post;
-import java.util.ArrayList;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.Date;
 import java.util.List;
 
-public class PostDTO {
+@Document(collection = "posts")
+public class Post {
+
+    @Id
     private String id;
+
     private String title;
     private String content;
     private List<String> mediaUrls;
     private List<String> fileTypes;
     private List<String> tags;
-    private UserDTO user;
+
+    @DBRef
+    private User user;
+
     private Date createdAt;
 
-    public static PostDTO fromEntity(Post post) {
-        PostDTO dto = new PostDTO();
-        dto.setId(post.getId());
-        dto.setTitle(post.getTitle());
-        dto.setContent(post.getContent());
-        dto.setMediaUrls(post.getMediaUrls());
-        dto.setFileTypes(post.getFileTypes());
-        dto.setTags(post.getTags());
-        dto.setUser(UserDTO.fromEntity(post.getUser()));
-        dto.setCreatedAt(post.getCreatedAt());
-        return dto;
+    public Post() {
     }
 
     public String getId() {
@@ -76,11 +74,11 @@ public class PostDTO {
         this.tags = tags;
     }
 
-    public UserDTO getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(UserDTO user) {
+    public void setUser(User user) {
         this.user = user;
     }
 

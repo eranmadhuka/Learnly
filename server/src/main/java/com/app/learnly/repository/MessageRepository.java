@@ -1,6 +1,6 @@
 package com.app.learnly.repository;
 
-import com.app.learnly.models.Message;
+import com.app.learnly.model.Message;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 
