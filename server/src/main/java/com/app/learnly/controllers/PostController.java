@@ -1,61 +1,132 @@
 package com.app.learnly.controllers;
 
 import com.app.learnly.model.Post;
+import com.app.learnly.model.User;
+import com.app.learnly.repository.PostRepository;
+import com.app.learnly.repository.UserRepository;
 import com.app.learnly.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/user/posts")
+@RequestMapping("/api/posts")
 public class PostController {
 
     @Autowired
     private PostService postService;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PostRepository postRepository;
+
     @PostMapping
-    public ResponseEntity<Post> createPost(@RequestBody Post post) {
-        Post createdPost = postService.createPost(post);
-        return ResponseEntity.ok(createdPost);
+    public ResponseEntity<Post> createPost(@RequestBody Post post, @AuthenticationPrincipal OAuth2User principal) {
+        try {
+            String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+            User user = userRepository.findByProviderId(providerId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            Post savedPost = postService.createPost(post, user.getId());
+            return ResponseEntity.ok(savedPost);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
-    @GetMapping
-    public ResponseEntity<List<Post>> getAllPosts() {
-        List<Post> posts = postService.getAllPosts();
-        return ResponseEntity.ok(posts);
+    @PutMapping("/{postId}")
+    public ResponseEntity<?> updatePost(@PathVariable String postId, @RequestBody Post postUpdates, @AuthenticationPrincipal OAuth2User principal) {
+        try {
+            String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+            User user = userRepository.findByProviderId(providerId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Optional<Post> existingPost = postService.findById(postId);
+            if (existingPost.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found");
+            }
+
+            Post post = existingPost.get();
+            if (!post.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to update this post");
+            }
+
+            Post updatedPost = postService.updatePost(postId, postUpdates);
+
+            return ResponseEntity.ok("Post updated successfully"); // ✅ Success Message
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while updating the post");
+        }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Post> getPostById(@PathVariable String id) {
-        Optional<Post> post = postService.getPostById(id);
-        return post.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Post>> getPostsByUserId(@PathVariable String userId) {
-        List<Post> posts = postService.getPostsByUserId(userId);
-        return ResponseEntity.ok(posts);
+    public ResponseEntity<?> getPostsByUserId(@PathVariable String userId) {
+        try {
+            List<Post> posts = postService.getPostsByUserId(userId);
+            return ResponseEntity.ok(posts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while fetching posts");
+        }
     }
 
-    @GetMapping("/tag/{tag}")
-    public ResponseEntity<List<Post>> getPostsByTag(@PathVariable String tag) {
-        List<Post> posts = postService.getPostsByTag(tag);
-        return ResponseEntity.ok(posts);
+    @GetMapping("/feed")
+    public ResponseEntity<?> getFeedPosts() {
+        try {
+            List<Post> posts = postService.getFeedPosts();
+            return ResponseEntity.ok(posts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while fetching feed posts");
+        }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Post> updatePost(@PathVariable String id, @RequestBody Post post) {
-        Post updatedPost = postService.updatePost(id, post);
-        return ResponseEntity.ok(updatedPost);
+    @GetMapping("/{postId}")
+    public ResponseEntity<?> getPostById(@PathVariable String postId) {
+        try {
+            return postService.getPostById(postId)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while fetching the post");
+        }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable String id) {
-        postService.deletePost(id);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<?> deletePost(@PathVariable String postId, @AuthenticationPrincipal OAuth2User principal) {
+        try {
+            String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+            User user = userRepository.findByProviderId(providerId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Optional<Post> existingPost = postService.findById(postId);
+            if (existingPost.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found");
+            }
+
+            Post post = existingPost.get();
+            if (!post.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to delete this post");
+            }
+
+            postService.deletePost(postId);
+
+            return ResponseEntity.ok("Post deleted successfully"); // ✅ Success Message
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while deleting the post");
+        }
     }
+
 }

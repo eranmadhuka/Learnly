@@ -14,18 +14,16 @@ public class Post {
 
     private String title;
     private String content;
-    private List<String> mediaUrls;
-    private List<String> fileTypes;
-    private List<String> tags;
+    private List<String> mediaUrls; // URLs of the media files
+    private List<String> fileTypes; // Types of the media files (e.g., "image", "video")
+    private List<String> tags; // Tags for categorization
 
     @DBRef
-    private User user;
+    private User user; // Reference to the User document
 
-    private Date createdAt;
+    private Date createdAt; // Timestamp for when the post was created
 
-    public Post() {
-    }
-
+    // Getters and Setters
     public String getId() {
         return id;
     }

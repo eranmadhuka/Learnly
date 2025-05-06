@@ -1,4 +1,3 @@
-// controllers/ProgressUpdateController.java
 package com.app.learnly.controllers;
 
 import com.app.learnly.model.ProgressUpdate;

@@ -7,20 +7,18 @@ const LearningContext = createContext();
 export const useLearning = () => useContext(LearningContext);
 
 export const LearningProvider = ({ children }) => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [learningPlans, setLearningPlans] = useState([]);
-  const [publicPlans, setPublicPlans] = useState([]);
+  const [publicPlans, setPublicPlans] = useState([]); // New state for public plans
   const [progressUpdates, setProgressUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user || !user.id || !token) {
-        setError("User not authenticated");
+      if (!user || !user.id) {
         setLoading(false);
         return;
       }
@@ -29,50 +27,47 @@ export const LearningProvider = ({ children }) => {
       try {
         const [userPlansResponse, publicPlansResponse, updatesResponse] =
           await Promise.all([
-            axios.get(`${API_BASE_URL}/api/plans/user/${user.id}`),
-            axios.get(`${API_BASE_URL}/api/plans/public`),
-            axios.get(`${API_BASE_URL}/api/progress/user/${user.id}`),
+            axios.get(`${API_BASE_URL}/api/plans/user/${user.id}`, {
+              withCredentials: true,
+            }),
+            axios.get(`${API_BASE_URL}/api/plans/public`, {
+              withCredentials: true,
+            }),
+            axios.get(`${API_BASE_URL}/api/progress/user/${user.id}`, {
+              withCredentials: true,
+            }),
           ]);
 
         setLearningPlans(userPlansResponse.data);
         setPublicPlans(
           publicPlansResponse.data.filter((plan) => plan.userId !== user.id)
-        );
+        ); // Exclude user's own plans
         setProgressUpdates(updatesResponse.data);
-        setError(null);
       } catch (error) {
         console.error("Error fetching learning data:", error);
-        if (error.response?.status === 401) {
-          setError("Unauthorized: Please log in again");
-        } else if (error.response?.status === 404) {
-          setError("No learning plans or progress found");
-          setLearningPlans([]);
-          setProgressUpdates([]);
-        } else {
-          setError("Error fetching learning data");
-        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [user, token, API_BASE_URL]);
+  }, [user, API_BASE_URL]);
 
   const addLearningPlan = async (planData) => {
     if (!user || !user.id) throw new Error("User not authenticated");
     if (!planData.title) throw new Error("Plan title is required");
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/plans`, planData);
+      const response = await axios.post(
+        `${API_BASE_URL}/api/plans`,
+        planData, // No need to set userId; backend handles user
+        { withCredentials: true }
+      );
       const newPlan = response.data;
       setLearningPlans((prev) => [...prev, newPlan]);
       return newPlan;
     } catch (error) {
-      console.error("Error adding learning plan:", error);
-      throw new Error(
-        error.response?.data?.message || "Failed to create learning plan"
-      );
+      throw new Error("Failed to create learning plan");
     }
   };
 
@@ -81,20 +76,18 @@ export const LearningProvider = ({ children }) => {
     if (!planId || !planData.title) throw new Error("Invalid plan data");
 
     try {
-      const response = await axios.put(`${API_BASE_URL}/api/plans/${planId}`, {
-        ...planData,
-        userId: user.id,
-      });
+      const response = await axios.put(
+        `${API_BASE_URL}/api/plans/${planId}`,
+        { ...planData, userId: user.id },
+        { withCredentials: true }
+      );
       const updatedPlan = response.data;
       setLearningPlans((prev) =>
         prev.map((plan) => (plan.id === planId ? updatedPlan : plan))
       );
       return updatedPlan;
     } catch (error) {
-      console.error("Error editing learning plan:", error);
-      throw new Error(
-        error.response?.data?.message || "Failed to update learning plan"
-      );
+      throw new Error("Failed to update learning plan");
     }
   };
 
@@ -103,16 +96,15 @@ export const LearningProvider = ({ children }) => {
 
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/api/plans/import/${planId}`
+        `${API_BASE_URL}/api/plans/import/${planId}`,
+        null,
+        { params: { userId: user.id }, withCredentials: true }
       );
       const importedPlan = response.data;
       setLearningPlans((prev) => [...prev, importedPlan]);
       return importedPlan;
     } catch (error) {
-      console.error("Error importing learning plan:", error);
-      throw new Error(
-        error.response?.data?.message || "Failed to import learning plan"
-      );
+      throw new Error("Failed to import learning plan");
     }
   };
 
@@ -121,14 +113,13 @@ export const LearningProvider = ({ children }) => {
     if (!planId) throw new Error("Plan ID is required");
 
     try {
-      await axios.delete(`${API_BASE_URL}/api/plans/${planId}`);
+      await axios.delete(`${API_BASE_URL}/api/plans/${planId}`, {
+        withCredentials: true,
+      });
       setLearningPlans((prev) => prev.filter((plan) => plan.id !== planId));
       return true;
     } catch (error) {
-      console.error("Error removing learning plan:", error);
-      throw new Error(
-        error.response?.data?.message || "Failed to delete learning plan"
-      );
+      throw new Error("Failed to delete learning plan");
     }
   };
 
@@ -138,18 +129,16 @@ export const LearningProvider = ({ children }) => {
       throw new Error("Invalid update data");
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/progress`, {
-        ...updateData,
-        userId: user.id,
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/api/progress`,
+        { ...updateData, userId: user.id },
+        { withCredentials: true }
+      );
       const newUpdate = response.data;
       setProgressUpdates((prev) => [...prev, newUpdate]);
       return newUpdate;
     } catch (error) {
-      console.error("Error adding progress update:", error);
-      throw new Error(
-        error.response?.data?.message || "Failed to create progress update"
-      );
+      throw new Error("Failed to create progress update");
     }
   };
 
@@ -160,7 +149,8 @@ export const LearningProvider = ({ children }) => {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/api/progress/${updateId}`,
-        { ...updateData, userId: user.id }
+        { ...updateData, userId: user.id },
+        { withCredentials: true }
       );
       const updatedUpdate = response.data;
       setProgressUpdates((prev) =>
@@ -168,10 +158,7 @@ export const LearningProvider = ({ children }) => {
       );
       return updatedUpdate;
     } catch (error) {
-      console.error("Error editing progress update:", error);
-      throw new Error(
-        error.response?.data?.message || "Failed to update progress update"
-      );
+      throw new Error("Failed to update progress update");
     }
   };
 
@@ -180,28 +167,26 @@ export const LearningProvider = ({ children }) => {
     if (!updateId) throw new Error("Update ID is required");
 
     try {
-      await axios.delete(`${API_BASE_URL}/api/progress/${updateId}`);
+      await axios.delete(`${API_BASE_URL}/api/progress/${updateId}`, {
+        withCredentials: true,
+      });
       setProgressUpdates((prev) =>
         prev.filter((update) => update.id !== updateId)
       );
       return true;
     } catch (error) {
-      console.error("Error removing progress update:", error);
-      throw new Error(
-        error.response?.data?.message || "Failed to delete progress update"
-      );
+      throw new Error("Failed to delete progress update");
     }
   };
 
   const value = {
     learningPlans,
-    publicPlans,
+    publicPlans, // Expose public plans
     progressUpdates,
     loading,
-    error,
     addLearningPlan,
     editLearningPlan,
-    importLearningPlan,
+    importLearningPlan, // New method
     removeLearningPlan,
     addProgressUpdate,
     editProgressUpdate,

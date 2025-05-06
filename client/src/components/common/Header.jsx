@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
 import { Menu } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import Logo from "../../assets/images/logo1.png";
@@ -36,21 +36,6 @@ const Header = ({ onMenuToggle }) => {
         isScrolled ? "shadow-md" : "shadow-sm"
       }`}
     >
-      <style>
-        {`
-          @keyframes dropdown {
-            from {
-              opacity: 0;
-              transform: scale(0.95);
-            }
-            to {
-              opacity: 1;
-              transform: scale(1);
-            }
-          }
-        `}
-      </style>
-
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex h-14 sm:h-16 items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -97,12 +82,7 @@ const Header = ({ onMenuToggle }) => {
                       className="fixed inset-0 z-10"
                       onClick={() => setDropdownOpen(false)}
                     />
-                    <div
-                      className="absolute right-0 z-20 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2"
-                      style={{
-                        animation: "dropdown 0.2s ease-in-out forwards",
-                      }}
-                    >
+                    <div className="absolute right-0 z-20 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 transform transition-all duration-200 ease-in-out origin-top-right scale-95 opacity-0 animate-dropdown">
                       <Link
                         to={`/profile/${user.id}`}
                         className="block px-4 py-2 text-sm text-gray-700 font-medium hover:bg-gray-50 hover:text-indigo-600 transition-colors duration-200"
@@ -147,6 +127,22 @@ const Header = ({ onMenuToggle }) => {
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes dropdown {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-dropdown {
+          animation: dropdown 0.2s ease-in-out forwards;
+        }
+      `}</style>
     </header>
   );
 };

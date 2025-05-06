@@ -5,13 +5,15 @@ import com.app.learnly.model.User;
 import com.app.learnly.repository.PostRepository;
 import com.app.learnly.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service class for handling post-related business logic in Learnly.
+ */
 @Service
 public class PostService {
 
@@ -21,63 +23,68 @@ public class PostService {
     @Autowired
     private UserRepository userRepository;
 
-    public Post createPost(Post post) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Optional<User> userOptional = userRepository.findByEmail(email);
-        User user = userOptional.orElseThrow(() -> new RuntimeException("User not found"));
+
+
+    // --- Core Post Operations ---
+
+    public Optional<Post> findById(String postId) {
+        return postRepository.findById(postId);
+    }
+
+    public Post createPost(Post post, String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
         post.setUser(user);
         post.setCreatedAt(new Date());
         return postRepository.save(post);
     }
 
-    public List<Post> getAllPosts() {
-        return postRepository.findAll();
+    public Post updatePost(String postId, Post postUpdates) {
+        return postRepository.findById(postId)
+                .map(existingPost -> {
+                    existingPost.setTitle(postUpdates.getTitle());
+                    existingPost.setContent(postUpdates.getContent());
+                    existingPost.setMediaUrls(postUpdates.getMediaUrls());
+                    existingPost.setFileTypes(postUpdates.getFileTypes());
+                    existingPost.setTags(postUpdates.getTags());
+                    return postRepository.save(existingPost);
+                })
+                .orElseThrow(() -> new RuntimeException("Post not found with ID: " + postId));
     }
 
-    public Optional<Post> getPostById(String id) {
-        return postRepository.findById(id);
+    public void deletePost(String postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with ID: " + postId));
+        postRepository.delete(post);
     }
+
+    // --- Fetch Posts ---
 
     public List<Post> getPostsByUserId(String userId) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isPresent()) {
-            return postRepository.findByUser(user.get());
-        }
-        throw new RuntimeException("User not found");
+        return postRepository.findByUserId(userId);
     }
 
-    public List<Post> getPostsByTag(String tag) {
-        return postRepository.findByTagsContaining(tag);
+    public List<Post> getFeedPosts() {
+        return postRepository.findAllByOrderByCreatedAtDesc();
     }
 
-    public Post updatePost(String id, Post updatedPost) {
-        Optional<Post> existingPost = postRepository.findById(id);
-        if (existingPost.isPresent()) {
-            Post post = existingPost.get();
-            String email = SecurityContextHolder.getContext().getAuthentication().getName();
-            if (!post.getUser().getEmail().equals(email)) {
-                throw new SecurityException("Unauthorized to update this post");
-            }
-            post.setTitle(updatedPost.getTitle());
-            post.setContent(updatedPost.getContent());
-            post.setMediaUrls(updatedPost.getMediaUrls());
-            post.setFileTypes(updatedPost.getFileTypes());
-            post.setTags(updatedPost.getTags());
-            return postRepository.save(post);
-        }
-        throw new RuntimeException("Post not found");
+    public Optional<Post> getPostById(String postId) {
+        return postRepository.findById(postId);
     }
 
-    public void deletePost(String id) {
-        Optional<Post> post = postRepository.findById(id);
-        if (post.isPresent()) {
-            String email = SecurityContextHolder.getContext().getAuthentication().getName();
-            if (!post.get().getUser().getEmail().equals(email)) {
-                throw new SecurityException("Unauthorized to delete this post");
-            }
-            postRepository.deleteById(id);
-        } else {
-            throw new RuntimeException("Post not found");
+    public List<Post> getFollowingPosts(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+        List<String> followingUserIds = user.getFollowing();
+        if (followingUserIds.isEmpty()) {
+            return new ArrayList<>();
         }
+
+        List<User> followingUsers = userRepository.findByIdIn(followingUserIds);
+        return postRepository.findByUserIn(followingUsers);
     }
+
+
 }
