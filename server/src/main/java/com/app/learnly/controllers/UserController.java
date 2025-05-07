@@ -137,27 +137,30 @@ public class UserController {
     ) {
         String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
         if (providerId == null) {
+            System.out.println("No providerId found in principal");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        System.out.println("Attempting to follow user: " + userId + " by providerId: " + providerId);
         User currentUser = userRepository.findByProviderId(providerId)
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
 
         Optional<User> optionalTargetUser = userRepository.findById(userId);
         if (optionalTargetUser.isEmpty()) {
+            System.out.println("Target user not found: " + userId);
             return ResponseEntity.notFound().build();
         }
 
         User targetUser = optionalTargetUser.get();
 
-        // Check if already following
         if (!currentUser.getFollowing().contains(userId)) {
             currentUser.getFollowing().add(userId);
             userRepository.save(currentUser);
-
-            // Add current user to target user's followers
             targetUser.getFollowers().add(currentUser.getId());
             userRepository.save(targetUser);
+            System.out.println("Successfully followed user: " + userId);
+        } else {
+            System.out.println("Already following user: " + userId);
         }
 
         return ResponseEntity.ok(currentUser);

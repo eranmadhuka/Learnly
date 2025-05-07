@@ -4,11 +4,13 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 const CommunitiesPage = ({ userId }) => {
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-6">
-        <h1 className="text-2xl font-bold text-indigo-600 mb-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <h1 className="text-3xl font-bold text-gray-800">
           Learning Communities
         </h1>
-        <GroupChat userId={userId} />
+        <div className="mb-6">
+          <GroupChat userId={userId} />
+        </div>
       </div>
     </DashboardLayout>
   );

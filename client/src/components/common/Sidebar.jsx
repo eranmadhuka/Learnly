@@ -3,10 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Home,
   Users,
-  Group,
+  MessageCircleMore,
   Bell,
-  Settings,
+  BookMarked,
   BookOpenCheck,
+  Handshake,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import UserImg from "../../assets/images/user.png";
@@ -134,7 +135,7 @@ const Sidebar = () => {
                 "/friends"
               )}`}
             >
-              <Users size={20} />
+              <Handshake size={20} />
               <span>Friends</span>
             </Link>
           </li>
@@ -164,10 +165,10 @@ const Sidebar = () => {
             <Link
               to="/communities"
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive(
-                "/learning-plans"
+                "/communities"
               )}`}
             >
-              <BookOpenCheck size={20} />
+              <MessageCircleMore size={20} />
               <span>Communities</span>
             </Link>
           </li>
@@ -178,7 +179,7 @@ const Sidebar = () => {
                 "/saved-posts"
               )}`}
             >
-              <Group size={20} />
+              <BookMarked size={20} />
               <span>Saved</span>
             </Link>
           </li>
@@ -193,7 +194,7 @@ const Sidebar = () => {
               <span>Notifications</span>
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link
               to="/update-profile"
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive(
@@ -203,7 +204,7 @@ const Sidebar = () => {
               <Settings size={20} />
               <span>Settings</span>
             </Link>
-          </li>
+          </li> */}
         </ul>
       </nav>
 

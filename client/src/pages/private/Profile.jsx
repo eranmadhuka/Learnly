@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import EditProfile from "../../components/profile/EditProfile";
+import ProfileCard from "../../components/profile/ProfileCard";
 
 const Profile = () => {
   const { user: currentUser, logout } = useAuth();
@@ -58,7 +59,10 @@ const Profile = () => {
           setIsFollowing(userData.followers.includes(currentUser.id));
         }
       } catch (err) {
-        console.error("Failed to fetch profile:", err);
+        console.error(
+          "Fetch Profile Error:",
+          err.response?.data || err.message
+        );
         if (err.response?.status === 404) navigate("/not-found");
       }
     };
@@ -74,7 +78,11 @@ const Profile = () => {
       );
       setFollowers(response.data);
     } catch (err) {
-      console.error("Failed to fetch followers:", err);
+      console.error(
+        "Fetch Followers Error:",
+        err.response?.data || err.message
+      );
+      setFollowers([]);
     }
   };
 
@@ -86,7 +94,11 @@ const Profile = () => {
       );
       setFollowing(response.data);
     } catch (err) {
-      console.error("Failed to fetch following:", err);
+      console.error(
+        "Fetch Following Error:",
+        err.response?.data || err.message
+      );
+      setFollowing([]);
     }
   };
 
@@ -98,31 +110,38 @@ const Profile = () => {
       );
       setPosts(response.data);
     } catch (err) {
-      console.error("Failed to fetch posts:", err);
+      console.error("Fetch Posts Error:", err.response?.data || err.message);
       setPosts([]);
     }
   };
 
   const handleFollow = async () => {
     try {
-      await axios.post(
+      const response = await axios.post(
         `${API_BASE_URL}/api/users/follow/${userId}`,
         {},
         { withCredentials: true }
       );
+      console.log("Follow Response:", response.data);
       setIsFollowing(true);
       fetchFollowers(userId);
       if (!profileUser.isPrivate) fetchPosts(userId);
     } catch (err) {
-      console.error("Failed to follow user:", err);
+      console.error("Follow Error:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
     }
   };
 
   const handleUnfollow = async () => {
     try {
-      await axios.delete(`${API_BASE_URL}/api/users/unfollow/${userId}`, {
-        withCredentials: true,
-      });
+      const response = await axios.delete(
+        `${API_BASE_URL}/api/users/unfollow/${userId}`,
+        { withCredentials: true }
+      );
+      console.log("Unfollow Response:", response.data);
       setIsFollowing(false);
       fetchFollowers(userId);
       if (profileUser.isPrivate) {
@@ -131,7 +150,11 @@ const Profile = () => {
         setFollowing([]);
       }
     } catch (err) {
-      console.error("Failed to unfollow user:", err);
+      console.error("Unfollow Error:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
     }
   };
 
@@ -152,7 +175,7 @@ const Profile = () => {
         file: null,
       });
     } catch (err) {
-      console.error("Failed to update profile:", err);
+      console.error("Edit Profile Error:", err.response?.data || err.message);
     }
   };
 
@@ -169,7 +192,10 @@ const Profile = () => {
         logout();
         navigate("/login");
       } catch (err) {
-        console.error("Failed to delete profile:", err);
+        console.error(
+          "Delete Profile Error:",
+          err.response?.data || err.message
+        );
       }
     }
   };
@@ -451,35 +477,7 @@ const Profile = () => {
                   ) : (
                     <div className="space-y-3">
                       {followers.map((follower) => (
-                        <div
-                          key={follower.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <img
-                              src={
-                                follower.picture ||
-                                "https://via.placeholder.com/40"
-                              }
-                              alt={follower.name}
-                              className="h-8 w-8 rounded-full object-cover"
-                            />
-                            <div>
-                              <p className="font-medium text-gray-800">
-                                {follower.name}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {follower.email}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => navigate(`/profile/${follower.id}`)}
-                            className="px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm"
-                          >
-                            View
-                          </button>
-                        </div>
+                        <ProfileCard key={follower.id} user={follower} />
                       ))}
                     </div>
                   )}
@@ -517,35 +515,7 @@ const Profile = () => {
                   ) : (
                     <div className="space-y-3">
                       {following.map((followed) => (
-                        <div
-                          key={followed.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <img
-                              src={
-                                followed.picture ||
-                                "https://via.placeholder.com/40"
-                              }
-                              alt={followed.name}
-                              className="h-8 w-8 rounded-full object-cover"
-                            />
-                            <div>
-                              <p className="font-medium text-gray-800">
-                                {followed.name}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {followed.email}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => navigate(`/profile/${followed.id}`)}
-                            className="px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm"
-                          >
-                            View
-                          </button>
-                        </div>
+                        <ProfileCard key={followed.id} user={followed} />
                       ))}
                     </div>
                   )}
