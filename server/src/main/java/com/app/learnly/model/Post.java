@@ -3,6 +3,8 @@ package com.app.learnly.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -17,6 +19,7 @@ public class Post {
     private List<String> mediaUrls; // URLs of the media files
     private List<String> fileTypes; // Types of the media files (e.g., "image", "video")
     private List<String> tags; // Tags for categorization
+    private List<String> likes = new ArrayList<>(); // User IDs who liked the post
 
     @DBRef
     private User user; // Reference to the User document
@@ -70,6 +73,14 @@ public class Post {
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public List<String> getLikes() {
+        return likes;
+    }
+
+    public void setLikes(List<String> likes) {
+        this.likes = likes;
     }
 
     public User getUser() {

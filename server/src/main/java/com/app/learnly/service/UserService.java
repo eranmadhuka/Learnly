@@ -1,6 +1,7 @@
 package com.app.learnly.service;
 
 import com.app.learnly.model.User;
+import com.app.learnly.repository.PostRepository;
 import com.app.learnly.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PostRepository postRepository;
 
     /**
      * Retrieves the current user based on their provider ID.
@@ -35,9 +39,9 @@ public class UserService {
      * @param userId The ID of the user.
      * @return The User object if found, otherwise null.
      */
-    public User getUserById(String userId) {
-        return userRepository.findById(userId).orElse(null);
-    }
+//    public User getUserById(String userId) {
+//        return userRepository.findById(userId).orElse(null);
+//    }
 
     /**
      * Searches for users excluding the current user, with optional filtering by name and email.
@@ -222,48 +226,48 @@ public class UserService {
      * @param postId The ID of the post to save.
      * @return The updated User object, or null if the user is not found.
      */
-    public User savePost(String providerId, String postId) {
-        if (providerId == null || postId == null) {
-            return null;
-        }
-
-        Optional<User> optionalUser = userRepository.findByProviderId(providerId);
-        if (optionalUser.isEmpty()) {
-            return null;
-        }
-
-        User user = optionalUser.get();
-        if (!user.getSavedPosts().contains(postId)) {
-            user.getSavedPosts().add(postId);
-            userRepository.save(user);
-        }
-
-        return user;
-    }
-
-    /**
-     * Removes a saved post for the current user.
-     *
-     * @param providerId The provider ID of the current user.
-     * @param postId The ID of the post to unsave.
-     * @return The updated User object, or null if the user is not found.
-     */
-    public User unsavePost(String providerId, String postId) {
-        if (providerId == null || postId == null) {
-            return null;
-        }
-
-        Optional<User> optionalUser = userRepository.findByProviderId(providerId);
-        if (optionalUser.isEmpty()) {
-            return null;
-        }
-
-        User user = optionalUser.get();
-        user.getSavedPosts().remove(postId);
-        userRepository.save(user);
-
-        return user;
-    }
+//    public User savePost(String providerId, String postId) {
+//        if (providerId == null || postId == null) {
+//            return null;
+//        }
+//
+//        Optional<User> optionalUser = userRepository.findByProviderId(providerId);
+//        if (optionalUser.isEmpty()) {
+//            return null;
+//        }
+//
+//        User user = optionalUser.get();
+//        if (!user.getSavedPosts().contains(postId)) {
+//            user.getSavedPosts().add(postId);
+//            userRepository.save(user);
+//        }
+//
+//        return user;
+//    }
+//
+//    /**
+//     * Removes a saved post for the current user.
+//     *
+//     * @param providerId The provider ID of the current user.
+//     * @param postId The ID of the post to unsave.
+//     * @return The updated User object, or null if the user is not found.
+//     */
+//    public User unsavePost(String providerId, String postId) {
+//        if (providerId == null || postId == null) {
+//            return null;
+//        }
+//
+//        Optional<User> optionalUser = userRepository.findByProviderId(providerId);
+//        if (optionalUser.isEmpty()) {
+//            return null;
+//        }
+//
+//        User user = optionalUser.get();
+//        user.getSavedPosts().remove(postId);
+//        userRepository.save(user);
+//
+//        return user;
+//    }
 
     /**
      * Retrieves the saved posts of the current user.
@@ -278,5 +282,29 @@ public class UserService {
 
         Optional<User> optionalUser = userRepository.findByProviderId(providerId);
         return optionalUser.map(User::getSavedPosts).orElse(List.of());
+    }
+
+    public void savePost(String userId, String postId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isPresent() && postRepository.existsById(postId)) {
+            User user = userOptional.get();
+            if (!user.getSavedPosts().contains(postId)) {
+                user.getSavedPosts().add(postId);
+                userRepository.save(user);
+            }
+        }
+    }
+
+    public void unsavePost(String userId, String postId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.getSavedPosts().remove(postId);
+            userRepository.save(user);
+        }
+    }
+
+    public Optional<User> getUserById(String userId) {
+        return userRepository.findById(userId);
     }
 }

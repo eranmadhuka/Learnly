@@ -79,15 +79,25 @@ public class PostController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @GetMapping("/feed")
-    public ResponseEntity<List<Post>> getFeedPosts(@RequestParam List<String> userIds) {
-        List<Post> posts = postService.getPostsByUserIds(userIds);
-        return new ResponseEntity<>(posts, HttpStatus.OK);
+    // Get like count
+    @GetMapping("/{id}/like-count")
+    public ResponseEntity<Integer> getLikeCount(@PathVariable String id) {
+        Post post = postService.getPostById(id);
+        return new ResponseEntity<>(post != null ? post.getLikes().size() : 0, HttpStatus.OK);
     }
 
-    @GetMapping("/users/{userId}/saved")
-    public ResponseEntity<List<Post>> getSavedPosts(@PathVariable String userId) {
-        List<Post> savedPosts = postService.getSavedPosts(userId);
-        return new ResponseEntity<>(savedPosts, HttpStatus.OK);
+    // Check if user has liked
+    @GetMapping("/{id}/has-liked")
+    public ResponseEntity<Boolean> hasLiked(@PathVariable String id, @RequestParam String userId) {
+        Post post = postService.getPostById(id);
+        boolean hasLiked = post != null && post.getLikes().contains(userId);
+        return new ResponseEntity<>(hasLiked, HttpStatus.OK);
+    }
+
+    // Toggle like
+    @PostMapping("/{id}/like")
+    public ResponseEntity<Void> toggleLike(@PathVariable String id, @RequestBody String userId) {
+        postService.toggleLike(id, userId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

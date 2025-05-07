@@ -72,16 +72,17 @@ public class PostService {
         return false;
     }
 
-    public List<Post> getPostsByUserIds(List<String> userIds) {
-        List<User> users = userRepository.findByIdIn(userIds);
-        return postRepository.findByUserIn(users);
-    }
-
-    public List<Post> getSavedPosts(String userId) {
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isPresent()) {
-            return postRepository.findByIdIn(userOptional.get().getSavedPosts());
+    public void toggleLike(String postId, String userId) {
+        Optional<Post> postOptional = postRepository.findById(postId);
+        if (postOptional.isPresent()) {
+            Post post = postOptional.get();
+            List<String> likes = post.getLikes();
+            if (likes.contains(userId)) {
+                likes.remove(userId);
+            } else {
+                likes.add(userId);
+            }
+            postRepository.save(post);
         }
-        return List.of();
     }
 }

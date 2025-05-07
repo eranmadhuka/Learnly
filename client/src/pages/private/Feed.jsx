@@ -13,7 +13,6 @@ const Feed = () => {
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8081/api";
-    console.log("Using API URL:", apiUrl);
 
     const fetchFeedPosts = async () => {
       try {
@@ -56,9 +55,12 @@ const Feed = () => {
       if (user) {
         try {
           // Update to match backend endpoint (assuming an endpoint exists for saved posts)
-          const response = await axios.get(`${apiUrl}/users/${user.id}/saved`, {
-            withCredentials: true,
-          });
+          const response = await axios.get(
+            `${apiUrl}/posts/users/${user.id}/saved`,
+            {
+              withCredentials: true,
+            }
+          );
           const saved = Array.isArray(response.data) ? response.data : [];
           setSavedPosts(saved);
         } catch (err) {

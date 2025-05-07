@@ -7,7 +7,7 @@ import { storage } from "../../firebase/firebase";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
-const AddBlogPost = () => {
+const CreatePost = () => {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -214,4 +214,4 @@ const AddBlogPost = () => {
   );
 };
 
-export default AddBlogPost;
+export default CreatePost;
