@@ -3,6 +3,8 @@ package com.app.learnly.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -22,6 +24,8 @@ public class Post {
     private User user; // Reference to the User document
 
     private Date createdAt; // Timestamp for when the post was created
+
+    private List<String> likes = new ArrayList<>(); // User IDs who liked the post
 
     // Getters and Setters
     public String getId() {
@@ -87,4 +91,7 @@ public class Post {
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
+
+    public List<String> getLikes() { return likes; }
+    public void setLikes(List<String> likes) { this.likes = likes; }
 }

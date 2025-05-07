@@ -1,4 +1,4 @@
-package com.app.learnly.controllers;
+package com.app.learnly.controller;
 
 import com.app.learnly.model.ProgressUpdate;
 import com.app.learnly.service.ProgressUpdateService;
