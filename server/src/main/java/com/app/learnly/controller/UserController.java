@@ -1,4 +1,4 @@
-package com.app.learnly.controllers;
+package com.app.learnly.controller;
 
 import com.app.learnly.model.User;
 import com.app.learnly.repository.UserRepository;
