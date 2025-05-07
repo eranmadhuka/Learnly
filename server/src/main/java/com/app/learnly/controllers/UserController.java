@@ -1,4 +1,4 @@
-package com.app.learnly.controller;
+package com.app.learnly.controllers;
 
 import com.app.learnly.model.User;
 import com.app.learnly.repository.UserRepository;
@@ -226,74 +226,60 @@ public class UserController {
         return ResponseEntity.ok(following);
     }
 
-//    // Save a post
-//    @PostMapping("/saved-posts/{postId}")
-//    public ResponseEntity<User> savePost(
-//            @AuthenticationPrincipal OAuth2User principal,
-//            @PathVariable String postId
-//    ) {
-//        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-//        if (providerId == null) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//        }
-//
-//        User currentUser = userRepository.findByProviderId(providerId)
-//                .orElseThrow(() -> new RuntimeException("Current user not found"));
-//
-//        // Check if post is already saved
-//        if (!currentUser.getSavedPosts().contains(postId)) {
-//            currentUser.getSavedPosts().add(postId);
-//            userRepository.save(currentUser);
-//        }
-//
-//        return ResponseEntity.ok(currentUser);
-//    }
-//
-//    // Unsave a post
-//    @DeleteMapping("/saved-posts/{postId}")
-//    public ResponseEntity<User> unsavePost(
-//            @AuthenticationPrincipal OAuth2User principal,
-//            @PathVariable String postId
-//    ) {
-//        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-//        if (providerId == null) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//        }
-//
-//        User currentUser = userRepository.findByProviderId(providerId)
-//                .orElseThrow(() -> new RuntimeException("Current user not found"));
-//
-//        currentUser.getSavedPosts().remove(postId);
-//        userRepository.save(currentUser);
-//
-//        return ResponseEntity.ok(currentUser);
-//    }
-//
-//    // Get user's saved posts
-//    @GetMapping("/me/saved-posts")
-//    public ResponseEntity<List<String>> getSavedPosts(@AuthenticationPrincipal OAuth2User principal) {
-//        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
-//        if (providerId == null) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//        }
-//
-//        User currentUser = userRepository.findByProviderId(providerId)
-//                .orElseThrow(() -> new RuntimeException("Current user not found"));
-//
-//        return ResponseEntity.ok(currentUser.getSavedPosts());
-//    }
+    // Save a post
+    @PostMapping("/saved-posts/{postId}")
+    public ResponseEntity<User> savePost(
+            @AuthenticationPrincipal OAuth2User principal,
+            @PathVariable String postId
+    ) {
+        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+        if (providerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-    @PostMapping("/{userId}/save/{postId}")
-    public ResponseEntity<Void> savePost(@PathVariable String userId, @PathVariable String postId) {
-        userService.savePost(userId, postId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        User currentUser = userRepository.findByProviderId(providerId)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        // Check if post is already saved
+        if (!currentUser.getSavedPosts().contains(postId)) {
+            currentUser.getSavedPosts().add(postId);
+            userRepository.save(currentUser);
+        }
+
+        return ResponseEntity.ok(currentUser);
     }
 
-    @PostMapping("/{userId}/unsave/{postId}")
-    public ResponseEntity<Void> unsavePost(@PathVariable String userId, @PathVariable String postId) {
-        userService.unsavePost(userId, postId);
-        return new ResponseEntity<>(HttpStatus.OK);
+    // Unsave a post
+    @DeleteMapping("/saved-posts/{postId}")
+    public ResponseEntity<User> unsavePost(
+            @AuthenticationPrincipal OAuth2User principal,
+            @PathVariable String postId
+    ) {
+        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+        if (providerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User currentUser = userRepository.findByProviderId(providerId)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        currentUser.getSavedPosts().remove(postId);
+        userRepository.save(currentUser);
+
+        return ResponseEntity.ok(currentUser);
+    }
+
+    // Get user's saved posts
+    @GetMapping("/me/saved-posts")
+    public ResponseEntity<List<String>> getSavedPosts(@AuthenticationPrincipal OAuth2User principal) {
+        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub") : principal.getAttribute("id");
+        if (providerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User currentUser = userRepository.findByProviderId(providerId)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        return ResponseEntity.ok(currentUser.getSavedPosts());
     }
 }
-
-

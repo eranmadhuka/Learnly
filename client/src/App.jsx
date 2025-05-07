@@ -17,7 +17,6 @@ import EditProgressUpdate from "./components/learning/EditProgressUpdate";
 import CommunitiesPage from "./pages/private/CommunitiesPage";
 import Friends from "./pages/private/Friends";
 import Peoples from "./pages/private/Peoples";
-import PostDetail from "./components/posts/PostDetail";
 
 function App() {
   const { user, loading } = useAuth();
@@ -55,8 +54,6 @@ function App() {
               path="/edit-learning-plan/:id"
               element={<EditLearningPlan />}
             />
-
-            {/* Progress update routes */}
             <Route
               path="/progress-update/:learningPlanId"
               element={<ProgressUpdateForm />}
@@ -65,9 +62,6 @@ function App() {
               path="/edit-progress-update/:progressId"
               element={<EditProgressUpdate />}
             />
-
-            {/* Post routes */}
-            <Route path="/posts/:id" element={<PostDetail />} />
 
             {/* Friends page */}
             <Route path="/friends" element={<Friends />} />

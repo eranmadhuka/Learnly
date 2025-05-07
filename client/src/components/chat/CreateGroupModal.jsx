@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { createGroup } from "../../services/api";
 import { ToastContainer, toast } from "react-toastify";
-import { Users } from "lucide-react";
 
 const CreateGroupModal = ({ isOpen, onClose, userId }) => {
   const [name, setName] = useState("");
@@ -40,11 +39,27 @@ const CreateGroupModal = ({ isOpen, onClose, userId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-amber-600 flex items-center">
-            <Users />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mr-2"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
             Create New Community
           </h2>
           <button

@@ -1,4 +1,4 @@
-package com.app.learnly.controller;
+package com.app.learnly.controllers;
 
 import com.app.learnly.model.Message;
 import com.app.learnly.service.GroupChatService;
