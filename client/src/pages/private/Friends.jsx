@@ -69,7 +69,7 @@ const Friends = () => {
     <DashboardLayout>
       <div className="bg-gray-100 min-h-screen">
         <div className="max-w-4xl mx-auto px-6">
-          <h1 className="text-2xl font-bold text-amber-600 mb-6">My Friends</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">My Friends</h1>
           {loading && (
             <div className="flex justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>

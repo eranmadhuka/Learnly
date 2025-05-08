@@ -1,216 +1,221 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
-import MediaUpload from "./MediaUpload";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../../firebase/firebase";
-import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { v4 as uuidv4 } from "uuid";
+import MediaUpload from "./MediaUpload";
+import DashboardLayout from "../layout/DashboardLayout";
+
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
 const CreatePost = () => {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState("");
   const [mediaFiles, setMediaFiles] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  const handleAddTag = (e) => {
+    if (e.key === "Enter" || e.type === "click") {
+      e.preventDefault();
+      if (tagInput.trim() && tags.length < 5) {
+        const newTag = tagInput.trim().toLowerCase();
+        if (!tags.includes(newTag)) setTags([...tags, newTag]);
+        setTagInput("");
+      } else if (tags.length >= 5) {
+        alert("You can add up to 5 tags.");
+      }
+    }
+  };
+
+  const handleRemoveTag = (tag) => {
+    setTags(tags.filter((t) => t !== tag));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!title || !content) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Fields",
-        text: "Please fill in all required fields.",
-        confirmButtonColor: "#4f46e5",
-      });
+    if (!title.trim() || !content.trim()) {
+      alert("Title and content are required.");
       return;
     }
 
-    // Count image and video files
-    const imageFiles = mediaFiles.filter((file) =>
-      file.type.startsWith("image/")
-    );
-    const videoFiles = mediaFiles.filter((file) =>
-      file.type.startsWith("video/")
-    );
-
-    // Validation
-    if (imageFiles.length > 3) {
-      Swal.fire({
-        icon: "error",
-        title: "Too Many Images",
-        text: "You can upload up to 3 images.",
-        confirmButtonColor: "#4f46e5",
-      });
-      return;
-    }
-
-    if (videoFiles.length > 1) {
-      Swal.fire({
-        icon: "error",
-        title: "Too Many Videos",
-        text: "You can upload only 1 video.",
-        confirmButtonColor: "#4f46e5",
-      });
-      return;
-    }
-
-    // Check video size (rough estimate for 30 seconds)
-    for (const file of videoFiles) {
-      if (file.size > 30 * 1024 * 1024) {
-        Swal.fire({
-          icon: "error",
-          title: "Video Too Large",
-          text: "Video must be less than 30 seconds (max 30MB).",
-          confirmButtonColor: "#4f46e5",
-        });
-        return;
-      }
-    }
-
-    setLoading(true);
-
+    setUploading(true);
     try {
-      // Upload media files to Firebase Storage
       const mediaUrls = [];
       const fileTypes = [];
 
-      for (const file of mediaFiles) {
-        const storageRef = ref(storage, `posts/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
-        mediaUrls.push(url);
-        fileTypes.push(file.type.startsWith("image/") ? "image" : "video");
+      for (const [index, file] of mediaFiles.entries()) {
+        const storageRef = ref(storage, `posts/${uuidv4()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        await new Promise((resolve, reject) => {
+          uploadTask.on(
+            "state_changed",
+            null,
+            (error) => reject(error),
+            async () => {
+              const url = await getDownloadURL(uploadTask.snapshot.ref);
+              mediaUrls.push(url);
+              fileTypes.push(
+                file.type.startsWith("image/") ? "image" : "video"
+              );
+              resolve();
+            }
+          );
+        });
       }
 
-      // Determine thumbnail (first image)
       const thumbnailUrl =
-        mediaUrls.find((url, index) => fileTypes[index] === "image") || "";
-
-      // Send a POST request to create a new blog post
+        mediaUrls.find((_, i) => fileTypes[i] === "image") || "";
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/posts`,
+        `${apiUrl}/api/posts`,
         {
           title,
           content,
+          tags,
           mediaUrls,
           fileTypes,
           thumbnailUrl,
-          userId: user.id,
+          user: { id: user.id },
         },
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
 
-      // Clear the form after successful submission
-      setTitle("");
-      setContent("");
-      setMediaFiles([]);
-      Swal.fire({
-        icon: "success",
-        title: "Success",
-        text: "Blog post created successfully!",
-        confirmButtonColor: "#4f46e5",
-      }).then(() => {
+      if (response.status === 200) {
+        alert("Post created successfully!");
+        setTitle("");
+        setContent("");
+        setTags([]);
+        setMediaFiles([]);
         navigate(`/profile/${user.id}`);
-      });
+      }
     } catch (error) {
-      console.error("Failed to create blog post:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to create blog post. Please try again.",
-        confirmButtonColor: "#4f46e5",
-      });
+      alert(error.response?.data?.message || "Failed to create post.");
     } finally {
-      setLoading(false);
+      setUploading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (confirm("Are you sure you want to discard this post?")) {
+      navigate(`/profile/${user.id}`);
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl bg-white shadow-lg">
-      <h2 className="text-2xl font-bold mb-6">Create a New Blog Post</h2>
+    <DashboardLayout>
+      <div className="p-10">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          Create New Post
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="Enter post title"
+              required
+              disabled={uploading}
+            />
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label
-            htmlFor="title"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            required
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Content <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              rows="6"
+              placeholder="Write your post content..."
+              required
+              disabled={uploading}
+            />
+          </div>
 
-        <div>
-          <label
-            htmlFor="content"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Content <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows="8"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Media
-          </label>
-          <MediaUpload onFilesSelected={setMediaFiles} />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 font-medium"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center">
-              <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tags (up to 5)
+            </label>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={handleAddTag}
+                className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="Type a tag and press Enter"
+                disabled={uploading}
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:bg-amber-300"
+                disabled={uploading}
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Creating...
-            </span>
-          ) : (
-            "Create Post"
-          )}
-        </button>
-      </form>
-    </div>
+                Add
+              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag)}
+                    className="ml-2 text-amber-600 hover:text-amber-800"
+                    disabled={uploading}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <MediaUpload
+            onFilesSelected={setMediaFiles}
+            mediaFiles={mediaFiles}
+          />
+
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              className={`flex-1 p-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 flex items-center justify-center ${
+                uploading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={uploading}
+            >
+              {uploading ? "Creating..." : "Create Post"}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex-1 p-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              disabled={uploading}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </DashboardLayout>
   );
 };
 

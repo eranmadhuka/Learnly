@@ -1,52 +1,97 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { useLocation, useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
 
+  // Function to get CSRF token from cookie
+  const getCsrfToken = () => Cookies.get("XSRF-TOKEN");
+
+  // Axios interceptor to include CSRF token for non-GET requests
+  useEffect(() => {
+    const interceptor = axios.interceptors.request.use(
+      (config) => {
+        if (["post", "put", "delete"].includes(config.method.toLowerCase())) {
+          const csrfToken = getCsrfToken();
+          if (csrfToken) {
+            config.headers["X-XSRF-TOKEN"] = csrfToken;
+          }
+        }
+        config.withCredentials = true; // Ensure cookies are sent
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    return () => {
+      axios.interceptors.request.eject(interceptor);
+    };
+  }, []);
+
+  // Check authentication status
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
-        withCredentials: true, // Ensure cookies/session is sent
+      console.log("Checking authentication");
+      const response = await axios.get(`${API_BASE_URL}/api/auth/user`, {
+        withCredentials: true,
       });
-      setUser(response.data); // Expecting User object from /api/users/me
+      console.log("Auth response:", response.data);
+      setUser(response.data);
     } catch (err) {
       console.error("Auth check failed:", err.response?.data || err.message);
-      setUser(null); // Clear user on failure (e.g., 401 Unauthorized or 404 Not Found)
+      if (err.response?.status === 401) {
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const login = (provider) => {
-    // Redirect to OAuth2 authorization endpoint
-    window.location.href = `${API_BASE_URL}/oauth2/authorization/${provider}`;
+  // Handle OAuth redirect and initial auth check
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const loginSuccess = query.get("loginSuccess");
+
+    if (loginSuccess === "true") {
+      console.log("OAuth login successful, checking auth");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      checkAuth();
+      navigate("/feed", { replace: true });
+    } else if (!user) {
+      checkAuth();
+    } else {
+      setLoading(false);
+    }
+  }, [location.search, navigate]);
+
+  const login = () => {
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
   };
 
   const logout = async () => {
     try {
-      setLoading(true);
-      await axios.post(`${API_BASE_URL}/logout`, {}, { withCredentials: true });
-      setUser(null);
-      window.location.href = "/login"; // Redirect to login page after logout
-      return true;
-    } catch (err) {
-      console.error("Logout failed:", err.response?.data || err.message);
-      return false;
+      await axios.post(`${API_BASE_URL}/logout`, null, {
+        withCredentials: true,
+      });
+    } catch (error) {
+      console.error("Logout error:", error.response?.data || error.message);
     } finally {
-      setLoading(false);
+      setUser(null);
+      Cookies.remove("JSESSIONID");
+      Cookies.remove("XSRF-TOKEN");
+      navigate("/login");
     }
   };
-
-  useEffect(() => {
-    checkAuth(); // Run on mount to verify authentication status
-  }, []);
 
   const value = {
     user,

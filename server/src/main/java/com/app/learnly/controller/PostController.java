@@ -6,9 +6,12 @@ import com.app.learnly.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -17,87 +20,71 @@ public class PostController {
     @Autowired
     private PostService postService;
 
-    // Create a new post
     @PostMapping
-    public ResponseEntity<Post> createPost(@RequestBody Post post, @RequestParam String userId) {
+    public ResponseEntity<Post> createPost(
+            @RequestBody Post post,
+            @AuthenticationPrincipal OAuth2User principal) {
         try {
-            Post createdPost = postService.createPost(post, userId);
+            Post createdPost = postService.createPost(post, principal);
             return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    // Get all posts
     @GetMapping
     public ResponseEntity<List<Post>> getAllPosts() {
         List<Post> posts = postService.getAllPosts();
-        return new ResponseEntity<>(posts, HttpStatus.OK);
+        return ResponseEntity.ok(posts);
     }
 
-    // Get post by ID
     @GetMapping("/{id}")
     public ResponseEntity<Post> getPostById(@PathVariable String id) {
-        Post post = postService.getPostById(id);
-        if (post != null) {
-            return new ResponseEntity<>(post, HttpStatus.OK);
-        }
-        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        Optional<Post> post = postService.getPostById(id);
+        return post.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // Get posts by user ID
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Post>> getPostsByUser(@PathVariable String userId) {
-        List<Post> posts = postService.getPostsByUser(userId);
-        return new ResponseEntity<>(posts, HttpStatus.OK);
+    public ResponseEntity<List<Post>> getPostsByUserId(
+            @PathVariable String userId,
+            @AuthenticationPrincipal OAuth2User principal) {
+        try {
+            List<Post> posts = postService.getPostsByUserId(userId, principal);
+            return ResponseEntity.ok(posts);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
+        }
     }
 
-    // Get posts by tag
-    @GetMapping("/tags")
-    public ResponseEntity<List<Post>> getPostsByTag(@RequestParam String tag) {
+    @GetMapping("/tag/{tag}")
+    public ResponseEntity<List<Post>> getPostsByTag(@PathVariable String tag) {
         List<Post> posts = postService.getPostsByTag(tag);
-        return new ResponseEntity<>(posts, HttpStatus.OK);
+        return ResponseEntity.ok(posts);
     }
 
-    // Update a post
     @PutMapping("/{id}")
-    public ResponseEntity<Post> updatePost(@PathVariable String id, @RequestBody Post post) {
-        Post updatedPost = postService.updatePost(id, post);
-        if (updatedPost != null) {
-            return new ResponseEntity<>(updatedPost, HttpStatus.OK);
+    public ResponseEntity<Post> updatePost(
+            @PathVariable String id,
+            @RequestBody Post post,
+            @AuthenticationPrincipal OAuth2User principal) {
+        try {
+            Post updatedPost = postService.updatePost(id, post, principal);
+            return ResponseEntity.ok(updatedPost);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, e.getMessage().contains("not found") ? HttpStatus.NOT_FOUND : HttpStatus.FORBIDDEN);
         }
-        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
     }
 
-    // Delete a post
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable String id) {
-        boolean deleted = postService.deletePost(id);
-        if (deleted) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    public ResponseEntity<Void> deletePost(
+            @PathVariable String id,
+            @AuthenticationPrincipal OAuth2User principal) {
+        try {
+            postService.deletePost(id, principal);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage().contains("not found") ? HttpStatus.NOT_FOUND : HttpStatus.FORBIDDEN);
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-    }
-
-    // Get like count
-    @GetMapping("/{id}/like-count")
-    public ResponseEntity<Integer> getLikeCount(@PathVariable String id) {
-        Post post = postService.getPostById(id);
-        return new ResponseEntity<>(post != null ? post.getLikes().size() : 0, HttpStatus.OK);
-    }
-
-    // Check if user has liked
-    @GetMapping("/{id}/has-liked")
-    public ResponseEntity<Boolean> hasLiked(@PathVariable String id, @RequestParam String userId) {
-        Post post = postService.getPostById(id);
-        boolean hasLiked = post != null && post.getLikes().contains(userId);
-        return new ResponseEntity<>(hasLiked, HttpStatus.OK);
-    }
-
-    // Toggle like
-    @PostMapping("/{id}/like")
-    public ResponseEntity<Void> toggleLike(@PathVariable String id, @RequestBody String userId) {
-        postService.toggleLike(id, userId);
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

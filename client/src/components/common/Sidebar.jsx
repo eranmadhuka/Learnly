@@ -172,7 +172,7 @@ const Sidebar = () => {
               <span>Communities</span>
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link
               to="/saved-posts"
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive(
@@ -182,7 +182,7 @@ const Sidebar = () => {
               <BookMarked size={20} />
               <span>Saved</span>
             </Link>
-          </li>
+          </li> */}
           <li>
             <Link
               to="/notifications"

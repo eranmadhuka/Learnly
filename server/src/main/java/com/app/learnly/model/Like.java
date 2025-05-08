@@ -6,13 +6,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
 
-@Document(collection = "comments")
-public class Comment {
+@Document(collection = "likes")
+public class Like {
 
     @Id
     private String id;
-
-    private String content;
 
     @DBRef
     private User user;
@@ -23,11 +21,10 @@ public class Comment {
     private Date createdAt;
 
     // Default constructor
-    public Comment() {}
+    public Like() {}
 
     // Constructor
-    public Comment(String content, User user, Post post) {
-        this.content = content;
+    public Like(User user, Post post) {
         this.user = user;
         this.post = post;
         this.createdAt = new Date();
@@ -40,14 +37,6 @@ public class Comment {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
     }
 
     public User getUser() {

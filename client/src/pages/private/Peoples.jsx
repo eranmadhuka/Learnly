@@ -92,7 +92,7 @@ const Peoples = () => {
     <DashboardLayout>
       <div className="bg-gray-100 min-h-screen">
         <div className="max-w-4xl mx-auto px-6">
-          <h1 className="text-2xl font-bold text-amber-600 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">
             People You May Know
           </h1>
           {loading && (

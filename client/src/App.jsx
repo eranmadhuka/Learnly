@@ -68,8 +68,8 @@ function App() {
             />
 
             {/* Post routes */}
-            <Route path="/posts/:id" element={<PostDetail />} />
-            <Route path="/new" element={<CreatePost />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/posts/new" element={<CreatePost />} />
 
             {/* Friends page */}
             <Route path="/friends" element={<Friends />} />

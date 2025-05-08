@@ -5,9 +5,10 @@ import axios from "axios";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import EditProfile from "../../components/profile/EditProfile";
 import ProfileCard from "../../components/profile/ProfileCard";
+import PostCard from "../../components/posts/PostCard";
 
 const Profile = () => {
-  const { user: currentUser, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { userId } = useParams();
   const navigate = useNavigate();
   const [profileUser, setProfileUser] = useState(null);
@@ -18,7 +19,6 @@ const Profile = () => {
     name: "",
     bio: "",
     picture: "",
-    isPrivate: false,
     file: null,
   });
   const [activeTab, setActiveTab] = useState("posts");
@@ -26,7 +26,8 @@ const Profile = () => {
 
   const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
-  const isOwnProfile = !userId || (currentUser && userId === currentUser.id);
+
+  const isOwnProfile = !userId || (user && userId === user.id);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -41,22 +42,15 @@ const Profile = () => {
           name: userData.name || "",
           bio: userData.bio || "",
           picture: userData.picture || "",
-          isPrivate: userData.isPrivate || false,
           file: null,
         });
 
-        if (
-          !userData.isPrivate ||
-          isOwnProfile ||
-          (currentUser && userData.followers.includes(currentUser.id))
-        ) {
-          fetchFollowers(userData.id);
-          fetchFollowing(userData.id);
-          fetchPosts(userData.id);
-        }
+        fetchFollowers(userData.id);
+        fetchFollowing(userData.id);
+        fetchPosts(userData.id);
 
-        if (!isOwnProfile && currentUser) {
-          setIsFollowing(userData.followers.includes(currentUser.id));
+        if (!isOwnProfile && user) {
+          setIsFollowing(userData.followers.includes(user.id));
         }
       } catch (err) {
         console.error(
@@ -67,8 +61,8 @@ const Profile = () => {
       }
     };
 
-    if (currentUser || userId) fetchProfile();
-  }, [currentUser, userId, navigate]);
+    if (user || userId) fetchProfile();
+  }, [user, userId, navigate]);
 
   const fetchFollowers = async (id) => {
     try {
@@ -104,10 +98,9 @@ const Profile = () => {
 
   const fetchPosts = async (id) => {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/api/posts?userId=${id}`,
-        { withCredentials: true }
-      );
+      const response = await axios.get(`${API_BASE_URL}/api/posts/user/${id}`, {
+        withCredentials: true,
+      });
       setPosts(response.data);
     } catch (err) {
       console.error("Fetch Posts Error:", err.response?.data || err.message);
@@ -117,15 +110,14 @@ const Profile = () => {
 
   const handleFollow = async () => {
     try {
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE_URL}/api/users/follow/${userId}`,
         {},
         { withCredentials: true }
       );
-      console.log("Follow Response:", response.data);
       setIsFollowing(true);
       fetchFollowers(userId);
-      if (!profileUser.isPrivate) fetchPosts(userId);
+      fetchPosts(userId);
     } catch (err) {
       console.error("Follow Error:", {
         status: err.response?.status,
@@ -137,18 +129,12 @@ const Profile = () => {
 
   const handleUnfollow = async () => {
     try {
-      const response = await axios.delete(
-        `${API_BASE_URL}/api/users/unfollow/${userId}`,
-        { withCredentials: true }
-      );
-      console.log("Unfollow Response:", response.data);
+      await axios.delete(`${API_BASE_URL}/api/users/unfollow/${userId}`, {
+        withCredentials: true,
+      });
       setIsFollowing(false);
       fetchFollowers(userId);
-      if (profileUser.isPrivate) {
-        setPosts([]);
-        setFollowers([]);
-        setFollowing([]);
-      }
+      fetchPosts(userId);
     } catch (err) {
       console.error("Unfollow Error:", {
         status: err.response?.status,
@@ -171,7 +157,6 @@ const Profile = () => {
         name: response.data.name,
         bio: response.data.bio,
         picture: response.data.picture,
-        isPrivate: response.data.isPrivate,
         file: null,
       });
     } catch (err) {
@@ -204,7 +189,7 @@ const Profile = () => {
     navigate("/posts/new");
   };
 
-  if (!currentUser && !userId) {
+  if (!user && !userId) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-100">
         <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg">
@@ -236,29 +221,13 @@ const Profile = () => {
                   className="h-20 w-20 rounded-full object-cover border-2 border-white"
                 />
                 <div className="text-center md:text-left flex-1">
-                  <div className="flex items-center justify-center md:justify-start space-x-2">
-                    <h1 className="text-2xl font-bold">{profileUser.name}</h1>
-                    {profileUser.isPrivate && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 text-amber-200"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </div>
+                  <h1 className="text-2xl font-bold">{profileUser.name}</h1>
                   <p className="text-blue-900">{profileUser.email}</p>
                   {profileUser.bio && (
                     <p className="mt-2 text-blue-900">{profileUser.bio}</p>
                   )}
                 </div>
-                {!isOwnProfile && currentUser && (
+                {!isOwnProfile && user && (
                   <div>
                     {isFollowing ? (
                       <button
@@ -362,18 +331,6 @@ const Profile = () => {
                         onClick={handleAddPost}
                         className="px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 flex items-center"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
                         New Post
                       </button>
                     </div>
@@ -383,25 +340,9 @@ const Profile = () => {
                       {profileUser.name}'s Posts
                     </h2>
                   )}
-                  {profileUser.isPrivate && !isOwnProfile && !isFollowing ? (
-                    <div className="text-center py-8">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-10 w-10 mx-auto text-gray-400"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="text-gray-600 mt-2">
-                        This account is private. Follow to see their posts.
-                      </p>
-                    </div>
-                  ) : posts.length === 0 ? (
+                  {posts.length > 0 ? (
+                    posts.map((post) => <PostCard key={post.id} post={post} />)
+                  ) : (
                     <div className="text-center py-8">
                       <p className="text-gray-600">No posts yet.</p>
                       {isOwnProfile && (
@@ -413,35 +354,6 @@ const Profile = () => {
                         </button>
                       )}
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {posts.map((post) => (
-                        <div
-                          key={post.id}
-                          className="p-4 bg-gray-50 rounded border border-gray-200"
-                        >
-                          <h3 className="font-semibold text-gray-800">
-                            {post.title}
-                          </h3>
-                          <p className="text-gray-600 mt-2 line-clamp-3">
-                            {post.content}
-                          </p>
-                          <p className="text-sm text-gray-500 mt-2">
-                            {new Date(post.createdAt).toLocaleDateString()}
-                          </p>
-                          {isOwnProfile && (
-                            <div className="flex justify-end space-x-2 mt-2">
-                              <button className="text-amber-600 hover:text-amber-700 text-sm">
-                                Edit
-                              </button>
-                              <button className="text-red-600 hover:text-red-700 text-sm">
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
                   )}
                 </div>
               )}
@@ -452,25 +364,7 @@ const Profile = () => {
                   <h2 className="text-xl font-semibold text-gray-800 mb-4">
                     Followers
                   </h2>
-                  {profileUser.isPrivate && !isOwnProfile && !isFollowing ? (
-                    <div className="text-center py-8">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-10 w-10 mx-auto text-gray-400"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="text-gray-600 mt-2">
-                        This account is private. Follow to see their followers.
-                      </p>
-                    </div>
-                  ) : followers.length === 0 ? (
+                  {followers.length === 0 ? (
                     <p className="text-center py-8 text-gray-600">
                       No followers yet.
                     </p>
@@ -490,25 +384,7 @@ const Profile = () => {
                   <h2 className="text-xl font-semibold text-gray-800 mb-4">
                     Following
                   </h2>
-                  {profileUser.isPrivate && !isOwnProfile && !isFollowing ? (
-                    <div className="text-center py-8">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-10 w-10 mx-auto text-gray-400"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="text-gray-600 mt-2">
-                        This account is private. Follow to see who they follow.
-                      </p>
-                    </div>
-                  ) : following.length === 0 ? (
+                  {following.length === 0 ? (
                     <p className="text-center py-8 text-gray-600">
                       Not following anyone yet.
                     </p>
