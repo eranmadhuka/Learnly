@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import { storage } from "../../firebase/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import EditProfile from "../../components/profile/EditProfile";
 import ProfileCard from "../../components/profile/ProfileCard";
@@ -146,9 +148,31 @@ const Profile = () => {
 
   const handleEditProfile = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/api/users/me`, formData, {
+      let pictureUrl = formData.picture;
+
+      // If a new file is selected, upload to Firebase
+      if (formData.file) {
+        const storageRef = ref(
+          storage,
+          `profile-pictures/${user.id}_${Date.now()}`
+        );
+        await uploadBytes(storageRef, formData.file);
+        pictureUrl = await getDownloadURL(storageRef);
+      }
+
+      // Prepare data to send to the backend (exclude file)
+      const updateData = {
+        name: formData.name,
+        bio: formData.bio,
+        picture: pictureUrl,
+      };
+
+      // Update user profile in MongoDB
+      await axios.put(`${API_BASE_URL}/api/users/me`, updateData, {
         withCredentials: true,
       });
+
+      // Fetch updated user data
       const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
         withCredentials: true,
       });
@@ -329,7 +353,7 @@ const Profile = () => {
                       </h2>
                       <button
                         onClick={handleAddPost}
-                        className="px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 flex items-center"
+                        className="px(snip)3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 flex items-center"
                       >
                         New Post
                       </button>

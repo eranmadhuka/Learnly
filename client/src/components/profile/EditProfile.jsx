@@ -1,4 +1,6 @@
 import React from "react";
+import { storage } from "../../firebase/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const EditProfile = ({
   profileUser,
@@ -10,11 +12,7 @@ const EditProfile = ({
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, picture: reader.result, file });
-      };
-      reader.readAsDataURL(file);
+      setFormData({ ...formData, file, picture: URL.createObjectURL(file) });
     }
   };
 
@@ -43,12 +41,12 @@ const EditProfile = ({
               alt="Profile Preview"
               className="h-24 w-24 rounded-full object-cover border-2 border-amber-200"
             />
-            {formData.picture && (
+            {formData.picture && formData.file && (
               <button
                 onClick={() =>
                   setFormData({
                     ...formData,
-                    picture: "",
+                    picture: profileUser.picture || "",
                     file: null,
                   })
                 }

@@ -19,6 +19,7 @@ import Friends from "./pages/private/Friends";
 import Peoples from "./pages/private/Peoples";
 import PostDetail from "./components/posts/PostDetail";
 import CreatePost from "./components/posts/CreatePost";
+import EditPost from "./components/posts/EditPost";
 
 function App() {
   const { user, loading } = useAuth();
@@ -70,6 +71,7 @@ function App() {
             {/* Post routes */}
             <Route path="/post/:id" element={<PostDetail />} />
             <Route path="/posts/new" element={<CreatePost />} />
+            <Route path="/edit-post/:postId" element={<EditPost />} />
 
             {/* Friends page */}
             <Route path="/friends" element={<Friends />} />
