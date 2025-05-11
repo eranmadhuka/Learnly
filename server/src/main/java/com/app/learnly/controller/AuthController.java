@@ -1,6 +1,7 @@
 package com.app.learnly.controller;
 
 import com.app.learnly.model.User;
+
 import com.app.learnly.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

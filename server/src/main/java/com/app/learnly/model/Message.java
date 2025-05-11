@@ -9,6 +9,7 @@ public class Message {
     private String id;
     private String groupId;
     private String senderId;
+    private String senderName;
     private String content;
     private long timestamp;
     private String status;
@@ -20,6 +21,8 @@ public class Message {
     public void setGroupId(String groupId) { this.groupId = groupId; }
     public String getSenderId() { return senderId; }
     public void setSenderId(String senderId) { this.senderId = senderId; }
+    public String getSenderName() { return senderName; }
+    public void setSenderName(String senderName) { this.senderName = senderName; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
     public long getTimestamp() { return timestamp; }

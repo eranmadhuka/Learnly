@@ -10,7 +10,7 @@ const MessageBubble = ({ message, userId }) => {
     return content.replace(
       urlRegex,
       (url) =>
-        `<a href="${url}" target="_blank" class="text-amber-600 underline hover:text-amber-800">${url}</a>`
+        `<a href="${url}" target="_blank" class="text-blue-600 underline hover:text-blue-800">${url}</a>`
     );
   };
 
@@ -19,7 +19,7 @@ const MessageBubble = ({ message, userId }) => {
       className={`mb-4 flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
     >
       {!isOwnMessage && (
-        <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center mr-2 mt-1 text-xs font-bold text-amber-800">
+        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-2 mt-1 text-xs font-bold text-gray-700">
           {message.senderName
             ? message.senderName.charAt(0).toUpperCase()
             : "U"}
@@ -29,7 +29,7 @@ const MessageBubble = ({ message, userId }) => {
         <div
           className={`p-3 rounded-lg ${
             isOwnMessage
-              ? "bg-amber-600 text-white rounded-br-none"
+              ? "bg-blue-600 text-white rounded-br-none"
               : "bg-gray-100 text-gray-800 rounded-bl-none"
           }`}
           dangerouslySetInnerHTML={{ __html: renderContent(message.content) }}
@@ -79,7 +79,7 @@ const MessageBubble = ({ message, userId }) => {
         </div>
       </div>
       {isOwnMessage && (
-        <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center ml-2 mt-1 text-xs font-bold text-white">
+        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center ml-2 mt-1 text-xs font-bold text-white">
           {message.senderName
             ? message.senderName.charAt(0).toUpperCase()
             : "U"}

@@ -37,11 +37,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .sessionFixation().migrateSession() // Protect against session fixation
+                        .sessionFixation().migrateSession()
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/error", "/api/auth/user").permitAll()
-                        .requestMatchers("/user/profile", "/logout").authenticated()
+                        .requestMatchers("/group-chat/**").permitAll() // Allow WebSocket handshake
+                        .requestMatchers("/api/groups/**", "/user/profile", "/logout").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -54,7 +55,7 @@ public class SecurityConfig {
                             }
                             response.sendRedirect(redirectUrl);
                         })
-                        .failureUrl("/login?error=true")
+                        .failureUrl(frontendUrl + "/login?error=true")
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -64,13 +65,13 @@ public class SecurityConfig {
                         .addLogoutHandler(logoutHandler())
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
-                            response.getWriter().write("Logout successful");
+                            response.sendRedirect(frontendUrl + "/login");
                         })
                         .permitAll()
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                            response.sendRedirect(frontendUrl + "/login");
                         })
                 );
 
@@ -95,7 +96,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-
-
 }

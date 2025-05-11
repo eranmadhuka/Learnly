@@ -21,4 +21,5 @@ public interface UserRepository extends MongoRepository<User, String> {
      */
     @Query("{ 'providerId': { $ne: ?0 } }")
     List<User> findByProviderIdNot(String providerId);
+
 }

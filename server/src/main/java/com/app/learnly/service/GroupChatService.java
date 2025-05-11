@@ -2,65 +2,62 @@ package com.app.learnly.service;
 
 import com.app.learnly.model.Group;
 import com.app.learnly.model.Message;
+import com.app.learnly.model.User;
+import com.app.learnly.repository.GroupRepository;
+import com.app.learnly.repository.MessageRepository;
+import com.app.learnly.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class GroupChatService {
-    @Autowired
-    private MongoTemplate mongoTemplate;
 
-    public Group createGroup(Group group) {
-        group.setCreatedAt(System.currentTimeMillis());
-        mongoTemplate.save(group, "groups");
-        return group;
-    }
+    @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
+    private MessageRepository messageRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public List<Group> getGroupsByUser(String userId) {
-        return mongoTemplate.find(
-                Query.query(Criteria.where("members").in(userId)),
-                Group.class,
-                "groups"
-        );
+        // Return all groups, regardless of membership
+        return groupRepository.findAll();
     }
 
-    public Group joinGroup(String groupId, String userId) {
-        mongoTemplate.updateFirst(
-                Query.query(Criteria.where("_id").is(groupId)),
-                new Update().addToSet("members", userId),
-                Group.class,
-                "groups"
-        );
-        return mongoTemplate.findById(groupId, Group.class, "groups");
+    public boolean isUserMemberOfGroup(String userId, String groupId) {
+        Optional<Group> group = groupRepository.findById(groupId);
+        return group.isPresent() && group.get().getMembers().contains(userId);
+    }
+
+    public Group createGroup(Group group) {
+        if (group.getCreatedBy() == null) {
+            throw new IllegalArgumentException("Group creator is required");
+        }
+        if (group.getMembers() == null || group.getMembers().isEmpty()) {
+            group.setMembers(List.of(group.getCreatedBy()));
+        }
+        if (group.getCreatedAt() == null) {
+            group.setCreatedAt(System.currentTimeMillis());
+        }
+        return groupRepository.save(group);
     }
 
     public Message saveMessage(Message message) {
-        message.setTimestamp(System.currentTimeMillis());
-        message.setStatus("sent");
-        mongoTemplate.save(message, "messages");
-        // Update group's lastMessageId
-        mongoTemplate.updateFirst(
-                Query.query(Criteria.where("_id").is(message.getGroupId())),
-                new Update().set("lastMessageId", message.getId()),
-                Group.class,
-                "groups"
-        );
-        return message;
+        return messageRepository.save(message);
     }
 
-    public List<Message> getGroupMessages(String groupId) {
-        return mongoTemplate.find(
-                Query.query(Criteria.where("groupId").is(groupId))
-                        .with(Sort.by(Sort.Direction.ASC, "timestamp")),
-                Message.class,
-                "messages"
-        );
+    public String getUserIdByProviderId(String providerId) {
+        Optional<User> user = userRepository.findByProviderId(providerId);
+        return user.map(User::getId).orElse(null);
+    }
+
+    public String getUserNameById(String userId) {
+        Optional<User> user = userRepository.findById(userId);
+        return user.map(User::getName).orElse("Unknown");
     }
 }
