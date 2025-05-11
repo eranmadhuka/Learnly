@@ -14,19 +14,12 @@ import CreateLearningPlan from "./components/learning/CreateLearningPlan";
 import EditLearningPlan from "./components/learning/EditLearningPlan";
 import ProgressUpdateForm from "./components/learning/ProgressUpdateForm";
 import EditProgressUpdate from "./components/learning/EditProgressUpdate";
-<<<<<<< HEAD
-import AddBlogPost from "./components/posts/AddBlogPost";
-
-
-
-=======
 import CommunitiesPage from "./pages/private/CommunitiesPage";
 import Friends from "./pages/private/Friends";
 import Peoples from "./pages/private/Peoples";
 import PostDetail from "./components/posts/PostDetail";
 import CreatePost from "./components/posts/CreatePost";
 import EditPost from "./components/posts/EditPost";
->>>>>>> main
 
 function App() {
   const { user, loading } = useAuth();
@@ -73,7 +66,7 @@ function App() {
             <Route
               path="/edit-progress-update/:progressId"
               element={<EditProgressUpdate />}
-            />`  `
+            />
 
             {/* Post routes */}
             <Route path="/post/:id" element={<PostDetail />} />
@@ -87,20 +80,12 @@ function App() {
 
             {/* Feed Route */}
             <Route path="/feed" element={<Feed />} />
-<<<<<<< HEAD
-          
-              {/* Blog Routes */}
-           <Route path="/add-blog-post" element={<AddBlogPost />} />
-
-
-=======
 
             {/* Communities Route */}
             <Route
               path="/communities"
               element={<CommunitiesPage userId={userId} />}
             />
->>>>>>> main
           </Route>
         </Routes>
       </div>

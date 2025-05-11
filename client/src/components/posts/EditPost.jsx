@@ -1,16 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-<<<<<<< HEAD
-import {} from "../../context/AuthContext";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import { useParams, useNavigate } from "react-router-dom";
-import MediaUpload from "./MediaUpload";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-=======
 import { useAuth } from "../../context/AuthContext";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
->>>>>>> main
 import { storage } from "../../firebase/firebase";
 import { v4 as uuidv4 } from "uuid";
 import MediaUpload from "./MediaUpload";
@@ -261,52 +253,6 @@ const EditPost = () => {
 
   return (
     <DashboardLayout>
-<<<<<<< HEAD
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold mb-6">Edit Blog Post</h2>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label
-            htmlFor="title"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" // Changed to indigo-500
-            required
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="content"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Content <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows="8"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" // Changed to indigo-500
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Existing Media
-          </label>
-          <div className="flex space-x-2 mb-4">
-            {renderExistingMediaPreviews()}
-=======
       <div className="p-10">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Post</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -323,7 +269,6 @@ const EditPost = () => {
               required
               disabled={uploading}
             />
->>>>>>> main
           </div>
 
           <div>
@@ -361,31 +306,6 @@ const EditPost = () => {
                 className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:bg-amber-300"
                 disabled={uploading}
               >
-<<<<<<< HEAD
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Updating...
-            </span>
-          ) : (
-            "Update Post"
-          )}
-        </button>
-      </form>
-    </div>
-  </DashboardLayout>
-=======
                 Add
               </button>
             </div>
@@ -445,7 +365,6 @@ const EditPost = () => {
         </form>
       </div>
     </DashboardLayout>
->>>>>>> main
   );
 };
 
