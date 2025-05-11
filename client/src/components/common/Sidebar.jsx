@@ -183,7 +183,7 @@ const Sidebar = () => {
               <span>Saved</span>
             </Link>
           </li> */}
-          <li>
+          {/* <li>
             <Link
               to="/notifications"
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive(
@@ -193,7 +193,7 @@ const Sidebar = () => {
               <Bell size={20} />
               <span>Notifications</span>
             </Link>
-          </li>
+          </li> */}
           {/* <li>
             <Link
               to="/update-profile"
