@@ -109,6 +109,7 @@ public class LearningPlanController {
         return new ResponseEntity<>(plans, HttpStatus.OK);
     }
 
+
     // Get all public learning plans
     @GetMapping("/public")
     public ResponseEntity<List<LearningPlan>> getPublicPlans() {
