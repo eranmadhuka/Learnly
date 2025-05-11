@@ -1,6 +1,6 @@
 package com.app.learnly.config;
 
-import com.app.learnly.services.AuthService;
+import com.app.learnly.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,318 +1,184 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { Link } from "react-router-dom";
-import {
-  ThumbsUp,
-  MessageCircle,
-  Bookmark,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  UserMinus,
-} from "lucide-react";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import UserImg from "../../assets/images/user.png";
-import Swal from "sweetalert2";
+import axios from "axios";
+import { Trash2, Edit } from "lucide-react";
 
-const PostCard = ({ post, posts, setPosts, savedPosts, setSavedPosts }) => {
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
+
+const PostCard = ({ post }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const [likes, setLikes] = useState(post.likeCount || 0);
-  const [hasLiked, setHasLiked] = useState(post.hasLiked || false);
-  const [commentCount, setCommentCount] = useState(0);
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
-  const formatDate = (dateString) => {
-    try {
-      const date =
-        typeof dateString === "string"
-          ? parseISO(dateString)
-          : new Date(dateString);
-      return isNaN(date.getTime())
-        ? "Unknown date"
-        : formatDistanceToNow(date, { addSuffix: true });
-    } catch (error) {
-      console.error("Date formatting error:", error);
-      return "Unknown date";
+  // Validate post object
+  if (!post) {
+    console.error("PostCard: Post prop is undefined");
+    return null;
+  }
+
+  // Check if the current user is the author of the post
+  const isAuthor = user && post.user?.id === user.id;
+
+  // Truncate content to 150 characters, with fallback for undefined content
+  const truncatedContent =
+    post.content &&
+    typeof post.content === "string" &&
+    post.content.length > 150
+      ? post.content.substring(0, 150) + "..."
+      : post.content || "";
+
+  // Format date from createdAt timestamp, with fallback
+  const formattedDate = post.createdAt
+    ? new Date(post.createdAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+    : "Recently";
+
+  // Get the first image URL (if available), with fallback
+  const imageUrl =
+    post.mediaUrls && Array.isArray(post.mediaUrls) && post.mediaUrls.length > 0
+      ? post.mediaUrls[0]
+      : null;
+
+  // Check if media is video, with fallback
+  const isVideo =
+    imageUrl &&
+    post.fileTypes &&
+    Array.isArray(post.fileTypes) &&
+    post.fileTypes[0] === "video";
+
+  // Handle click to navigate to post details
+  const handlePostClick = () => {
+    if (post.id) {
+      navigate(`/post/${post.id}`);
     }
   };
 
-  const isSaved = savedPosts?.includes(post.id);
-  const isOwnPost = user && post.user?.id === user.id;
+  // Handle delete click with confirmation
+  const handleDeleteClick = async (e) => {
+    e.stopPropagation();
 
-  useEffect(() => {
-    const fetchPostDetails = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this post? This action cannot be undone."
+    );
+
+    if (confirmDelete && post.id) {
       try {
-        const likesResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/posts/${post.id}/like-count`,
-          { withCredentials: true }
-        );
-        setLikes(likesResponse.data || 0); // Fallback to 0 if undefined
+        console.log("Attempting to delete post ID:", post.id);
 
-        if (user) {
-          const userLikeResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL}/posts/${post.id}/has-liked`,
-            { withCredentials: true }
-          );
-          setHasLiked(userLikeResponse.data);
-        }
-
-        const commentsResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/comments/${post.id}/all`, // Updated endpoint
-          { withCredentials: true }
-        );
-        setCommentCount(
-          Array.isArray(commentsResponse.data)
-            ? commentsResponse.data.length
-            : 0
-        );
-      } catch (error) {
-        console.error("Error fetching post details:", error);
-      }
-    };
-
-    fetchPostDetails();
-  }, [post.id, user]);
-
-  const handleLike = async () => {
-    if (!user) return alert("You must be logged in to like posts.");
-    try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/posts/${post.id}/like`,
-        {},
-        { withCredentials: true }
-      );
-      setHasLiked(!hasLiked);
-      setLikes(hasLiked ? likes - 1 : likes + 1);
-    } catch (error) {
-      console.error("Error liking post:", error);
-      alert("Failed to like post. Please try again.");
-    }
-  };
-
-  const toggleSavePost = async (postId) => {
-    if (!user) return alert("You must be logged in to save posts.");
-
-    try {
-      if (isSaved) {
-        await axios.post(
-          `${import.meta.env.VITE_API_URL}/user/${user.id}/unsave/${postId}`,
-          {},
-          { withCredentials: true }
-        );
-        setSavedPosts((prev) => prev.filter((id) => id !== postId));
-      } else {
-        await axios.post(
-          `${import.meta.env.VITE_API_URL}/user/${user.id}/save/${postId}`,
-          {},
-          { withCredentials: true }
-        );
-        setSavedPosts((prev) => [...prev, postId]);
-      }
-    } catch (error) {
-      console.error("Failed to save/unsave post:", error);
-      alert("Failed to save/unsave post. Please try again.");
-    }
-  };
-
-  const handleDeletePost = async () => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "This will permanently delete your post. You can’t undo this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#4f46e5",
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "No, keep it",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await axios.delete(`${import.meta.env.VITE_API_URL}/posts/${post.id}`, {
+        await axios.delete(`${apiUrl}/api/posts/${post.id}`, {
           withCredentials: true,
         });
-        setPosts((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
-        Swal.fire({
-          title: "Deleted!",
-          text: "Your post has been successfully removed.",
-          icon: "success",
-          confirmButtonColor: "#4f46e5",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+
+        alert("Your post has been deleted.");
+        navigate(`/feed`);
       } catch (error) {
-        console.error("Failed to delete post:", error);
-        Swal.fire({
-          title: "Error!",
-          text: "Failed to delete your post. Please try again.",
-          icon: "error",
-          confirmButtonColor: "#4f46e5",
-        });
+        console.error("Delete error:", error.message);
+        alert(
+          error.response?.data?.message ||
+            "Failed to delete post. Please try again."
+        );
       }
     }
   };
 
-  const handleUnfollowUser = async () => {
-    try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/user/${user.id}/unfollow/${
-          post.user.id
-        }`,
-        {},
-        { withCredentials: true }
-      );
-      Swal.fire({
-        title: "Unfollowed!",
-        text: `You have unfollowed ${post.user.name}.`,
-        icon: "success",
-        confirmButtonColor: "#4f46e5",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      console.error("Failed to unfollow user:", error);
-      Swal.fire({
-        title: "Error!",
-        text: "Failed to unfollow user. Please try again.",
-        icon: "error",
-        confirmButtonColor: "#4f46e5",
-      });
-    }
-  };
+  // Parse tags for display, with fallback
+  const displayTags =
+    post.tags && Array.isArray(post.tags) && post.tags.length > 0
+      ? post.tags.map((tag) => `#${tag}`).join(" ")
+      : "";
 
   return (
-    <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden mb-4 relative">
-      <div className="p-4 pb-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Link to={`/profile/${post.user?.id}`}>
-              <img
-                src={post.user?.picture ? post.user?.picture : UserImg}
-                alt={post.user?.name || "User"}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            </Link>
-            <div>
-              <Link
-                to={`/profile/${post.user?.id}`}
-                className="font-semibold text-gray-800 hover:underline"
-              >
+    <div
+      className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-4 cursor-pointer hover:shadow-md transition-shadow duration-200 relative"
+      onClick={handlePostClick}
+    >
+      {/* Header with user info */}
+      <div className="p-4">
+        <div className="flex items-center mb-3">
+          <img
+            src={post.user?.picture || "/api/placeholder/40/40"}
+            alt={post.user?.name || "User"}
+            className="w-12 h-12 rounded-full object-cover mr-3"
+          />
+          <div className="flex-1">
+            <div className="flex items-baseline flex-wrap">
+              <h3 className="text-base font-semibold text-gray-900">
                 {post.user?.name || "Unknown User"}
-              </Link>
-              <p className="text-xs text-gray-500">
-                {formatDate(post.createdAt)}
-              </p>
+              </h3>
+              <span className="mx-1 text-gray-500">•</span>
+              <span className="text-sm text-gray-500">
+                {post.user?.bio || ""}
+              </span>
+            </div>
+            <div className="flex items-center text-xs text-gray-500">
+              <span>{formattedDate}</span>
             </div>
           </div>
-          <div className="relative">
-            <button
-              onClick={() => setIsOptionsOpen(!isOptionsOpen)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <MoreHorizontal size={20} />
-            </button>
-            {isOptionsOpen && (
-              <div className="absolute right-0 z-20 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 transform transition-all duration-200 ease-in-out origin-top-right scale-95 opacity-0 animate-dropdown">
-                <div className="py-1" role="menu" aria-orientation="vertical">
-                  {isOwnPost ? (
-                    <>
-                      <Link
-                        to={`/posts/${post.id}/edit`}
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                        role="menuitem"
-                      >
-                        <Edit size={16} className="mr-2" /> Edit Post
-                      </Link>
-                      <button
-                        onClick={handleDeletePost}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                        role="menuitem"
-                      >
-                        <Trash2 size={16} className="mr-2" /> Delete Post
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => toggleSavePost(post.id)}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        role="menuitem"
-                      >
-                        <Bookmark size={16} className="mr-2" />
-                        {isSaved ? "Unsave Post" : "Save Post"}
-                      </button>
-                      {/* <button
-                        onClick={handleUnfollowUser}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        role="menuitem"
-                      >
-                        <UserMinus size={16} className="mr-2" /> Unfollow User
-                      </button> */}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+
+          {/* Edit and Delete buttons - Only visible for post author */}
+          {isAuthor && (
+            <div className="flex space-x-2">
+              <Link
+                to={`/edit-post/${post.id}`}
+                state={{ post }}
+                className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Edit size={18} />
+              </Link>
+
+              <button
+                onClick={handleDeleteClick}
+                className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-100"
+                title="Delete post"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Post title and content */}
+        <div className="mb-3">
+          {post.title && (
+            <h4 className="text-lg font-medium text-gray-900 mb-2">
+              {post.title}
+            </h4>
+          )}
+          {truncatedContent && (
+            <p className="text-sm text-gray-700 whitespace-pre-line">
+              {truncatedContent}
+            </p>
+          )}
+
+          {/* Display tags */}
+          {displayTags && (
+            <p className="text-sm text-blue-600 mt-2">{displayTags}</p>
+          )}
         </div>
       </div>
 
-      <Link to={`/posts/${post.id}`} className="block p-4 pt-3">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">{post.title}</h2>
-        <p className="text-gray-600 text-sm">
-          {post.content
-            ? `${post.content.substring(0, 150)}...`
-            : "No content available"}
-        </p>
-      </Link>
-
-      {post.mediaUrls?.length > 0 && (
-        <Link to={`/posts/${post.id}`} className="block px-4 pb-4">
-          <img
-            src={post.mediaUrls[0] ? post.mediaUrls[0] : UserImg}
-            alt="Post media"
-            className="w-full h-52 object-cover rounded-lg"
-          />
-        </Link>
+      {/* Media content */}
+      {imageUrl && (
+        <div className="border-t border-gray-100">
+          {isVideo ? (
+            <video
+              src={imageUrl}
+              controls
+              className="w-full max-h-96"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={imageUrl}
+              alt={post.title || "Post image"}
+              className="w-full object-cover max-h-96"
+            />
+          )}
+        </div>
       )}
-
-      <div className="px-4 py-3 border-t border-gray-100 flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={handleLike}
-            className={`flex items-center space-x-1 ${
-              hasLiked
-                ? "text-indigo-600 hover:text-indigo-700"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <ThumbsUp size={20} className={hasLiked ? "fill-current" : ""} />
-            <span className="text-sm">Like</span>
-            <span className="text-sm">({likes})</span>
-          </button>
-          <Link
-            to={`/posts/${post.id}`}
-            className="flex items-center space-x-1 text-gray-500 hover:text-gray-700"
-          >
-            <MessageCircle size={20} />
-            <span className="text-sm">Comment</span>
-            <span className="text-sm">({commentCount})</span>
-          </Link>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => toggleSavePost(post.id)}
-            className={`flex items-center space-x-1 ${
-              isSaved
-                ? "text-indigo-600 hover:text-indigo-700"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <Bookmark size={20} className={isSaved ? "fill-current" : ""} />
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

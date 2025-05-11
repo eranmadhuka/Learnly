@@ -128,7 +128,7 @@ const Header = ({ onMenuToggle }) => {
         </div>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         @keyframes dropdown {
           from {
             opacity: 0;
