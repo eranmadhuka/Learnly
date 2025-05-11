@@ -12,7 +12,7 @@ const AuthProvider = ({ children }) => {
   const location = useLocation();
 
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:8082";
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
 
   // Function to get CSRF token from cookie
   const getCsrfToken = () => Cookies.get("XSRF-TOKEN");
